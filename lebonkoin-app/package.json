@@ -1,0 +1,54 @@
+{
+  "name": "lebonkoin-app",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --turbopack",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "db:migrate": "prisma migrate dev",
+    "db:reset": "prisma migrate reset",
+    "db:seed": "tsx prisma/seed.ts",
+    "db:generate": "prisma generate",
+    "db:studio": "prisma studio",
+    "check-balances": "node scripts/check-balances.js",
+    "check-usdc-sepolia": "node scripts/check-usdc-sepolia.js"
+  },
+  "prisma": {
+    "seed": "tsx prisma/seed.ts"
+  },
+  "dependencies": {
+    "@circle-fin/modular-wallets-core": "^1.0.9",
+    "@prisma/client": "^6.11.1",
+    "@rainbow-me/rainbowkit": "^2.2.8",
+    "@tanstack/react-query": "^5.81.5",
+    "@worldcoin/id": "^0.9.2",
+    "@worldcoin/idkit": "^2.2.2",
+    "axios": "^1.10.0",
+    "dotenv": "^17.0.1",
+    "ethers": "^6.15.0",
+    "lucide-react": "^0.525.0",
+    "next": "15.3.5",
+    "prisma": "^6.11.1",
+    "react": "^19.0.0",
+    "react-dom": "^19.0.0",
+    "viem": "^2.31.7",
+    "wagmi": "^2.15.6",
+    "zod": "^3.25.74"
+  },
+  "devDependencies": {
+    "@eslint/eslintrc": "^3",
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20.19.4",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^9",
+    "eslint-config-next": "15.3.5",
+    "string-replace-loader": "^3.2.0",
+    "tailwindcss": "^4",
+    "ts-node": "^10.9.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.8.3"
+  }
+}

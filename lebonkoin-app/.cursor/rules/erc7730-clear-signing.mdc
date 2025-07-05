@@ -1,0 +1,254 @@
+# 🔐 ERC-7730 CLEAR SIGNING - LEBONKOIN
+
+## 🎯 OBJECTIF CLEAR SIGNING
+Transformer toutes les transactions LeBonKoin en signatures **lisibles et compréhensibles** pour l'utilisateur final, éliminant le "blind signing" dangereux.
+
+## 📋 RÈGLES OBLIGATOIRES ERC-7730
+
+### ✅ Toujours Implémenter
+```typescript
+// OBLIGATOIRE : Chaque interaction smart contract doit avoir son descripteur ERC-7730
+// Référence : https://developers.ledger.com/docs/clear-signing/understanding/what-is-it
+
+// Format standard ERC-7730
+interface ERC7730Descriptor {
+  schemaVersion: "1.0.0";
+  metadata: {
+    name: string;           // Nom clair de l'action
+    description: string;    // Description détaillée
+    shortName?: string;     // Nom court pour petits écrans
+  };
+  display: {
+    formats: DisplayFormat[];
+  };
+}
+```
+
+### 🛒 Descripteurs LeBonKoin Spécifiques
+
+#### 1. Paiement d'Achat
+```json
+{
+  "schemaVersion": "1.0.0",
+  "metadata": {
+    "name": "LeBonKoin - Paiement Sécurisé",
+    "description": "Paiement pour achat d'objet avec dépôt de garantie",
+    "shortName": "Payer Article"
+  },
+  "display": {
+    "formats": [{
+      "intent": "Payer {{amount}} USDC pour {{itemName}}",
+      "fields": {
+        "amount": {
+          "label": "Montant",
+          "format": "amount",
+          "params": {
+            "tokenAddress": "0x...",
+            "threshold": "1000000"
+          }
+        },
+        "itemName": {
+          "label": "Article",
+          "format": "string"
+        },
+        "sellerId": {
+          "label": "Vendeur",
+          "format": "addressName"
+        }
+      }
+    }]
+  }
+}
+```
+
+#### 2. Libération de Fonds
+```json
+{
+  "schemaVersion": "1.0.0",
+  "metadata": {
+    "name": "LeBonKoin - Confirmation Réception",
+    "description": "Confirmer la réception de l'objet et libérer les fonds",
+    "shortName": "Confirmer Réception"
+  },
+  "display": {
+    "formats": [{
+      "intent": "Confirmer réception et libérer {{amount}} USDC vers {{seller}}",
+      "fields": {
+        "amount": {
+          "label": "Montant à libérer",
+          "format": "amount"
+        },
+        "seller": {
+          "label": "Vendeur",
+          "format": "addressName"
+        }
+      }
+    }]
+  }
+}
+```
+
+#### 3. Création d'Annonce
+```json
+{
+  "schemaVersion": "1.0.0",
+  "metadata": {
+    "name": "LeBonKoin - Création Annonce",
+    "description": "Créer une nouvelle annonce de vente",
+    "shortName": "Créer Annonce"
+  },
+  "display": {
+    "formats": [{
+      "intent": "Créer annonce '{{title}}' au prix de {{price}} USDC",
+      "fields": {
+        "title": {
+          "label": "Titre",
+          "format": "string"
+        },
+        "price": {
+          "label": "Prix",
+          "format": "amount"
+        }
+      }
+    }]
+  }
+}
+```
+
+## 🔧 IMPLÉMENTATION TECHNIQUE
+
+### Structure des Fichiers
+```
+/src/contracts/ERC7730Descriptors/
+  ├── payment.json           # Descripteur paiement
+  ├── release.json          # Descripteur libération
+  ├── listing.json          # Descripteur création annonce
+  ├── refund.json           # Descripteur remboursement
+  └── dispute.json          # Descripteur résolution litige
+```
+
+### Validation avec Ledger Builder
+```typescript
+// OBLIGATOIRE : Utiliser le builder Ledger pour valider
+// URL : https://get-clear-signed.ledger.com/
+
+// Étapes obligatoires :
+// 1. Copier l'adresse du contrat LeBonKoin
+// 2. Coller l'ABI du contrat
+// 3. Générer les descripteurs JSON
+// 4. Tester avec des transactions réelles
+// 5. Valider l'affichage sur Ledger
+```
+
+### Intégration Smart Contract
+```solidity
+// Dans LeBonKoinEscrow.sol
+pragma solidity ^0.8.0;
+
+contract LeBonKoinEscrow {
+    // OBLIGATOIRE : Toutes les fonctions publiques doivent avoir un descripteur ERC-7730
+    
+    function createEscrow(
+        uint256 listingId,
+        address seller,
+        uint256 amount,
+        string calldata itemName
+    ) external {
+        // Logique escrow...
+        // Le descripteur ERC-7730 affichera :
+        // "Payer {amount} USDC pour {itemName}"
+    }
+    
+    function releaseFunds(uint256 escrowId) external {
+        // Logique libération...
+        // Le descripteur ERC-7730 affichera :
+        // "Confirmer réception et libérer {amount} USDC vers {seller}"
+    }
+}
+```
+
+### Intégration Frontend
+```typescript
+// Dans le composant de paiement
+import { useERC7730 } from '@/hooks/useERC7730';
+
+const PaymentComponent = () => {
+  const { validateTransaction } = useERC7730();
+  
+  const handlePayment = async () => {
+    // OBLIGATOIRE : Valider que la transaction sera claire
+    const isValidERC7730 = await validateTransaction({
+      contractAddress: ESCROW_CONTRACT_ADDRESS,
+      functionName: 'createEscrow',
+      params: [listingId, seller, amount, itemName]
+    });
+    
+    if (!isValidERC7730) {
+      throw new Error('Transaction non compatible ERC-7730');
+    }
+    
+    // Procéder au paiement...
+  };
+};
+```
+
+## 🚨 RÈGLES DE SÉCURITÉ
+
+### Validation Obligatoire
+```typescript
+// TOUJOURS vérifier avant déploiement
+const ERC7730_CHECKLIST = {
+  descriptorExists: true,      // Descripteur JSON existe
+  fieldsComplete: true,        // Tous les champs sont mappés
+  intentClear: true,          // L'intent est compréhensible
+  testedOnLedger: true,       // Testé sur device Ledger
+  registrySubmitted: true     // Soumis au registre
+};
+```
+
+### Messages d'Erreur Clairs
+```typescript
+// Messages d'erreur en français pour LeBonKoin
+const CLEAR_SIGNING_ERRORS = {
+  NO_DESCRIPTOR: "Impossible d'afficher les détails de cette transaction",
+  INVALID_FORMAT: "Format de transaction non reconnu",
+  MISSING_FIELDS: "Informations manquantes pour la signature",
+  LEDGER_UNSUPPORTED: "Cette transaction n'est pas supportée par votre Ledger"
+};
+```
+
+## 📊 MÉTRIQUES DE SUCCÈS
+
+### KPIs ERC-7730
+- ✅ 100% des transactions LeBonKoin ont un descripteur ERC-7730
+- ✅ Taux de réussite des signatures > 98%
+- ✅ Temps d'affichage des détails < 2 secondes
+- ✅ 0 transaction "blind signed" sur LeBonKoin
+
+### Tests Obligatoires
+```typescript
+// Tests unitaires pour chaque descripteur
+describe('ERC-7730 Clear Signing', () => {
+  it('should display payment details clearly', () => {
+    // Test affichage paiement
+  });
+  
+  it('should show release confirmation', () => {
+    // Test confirmation libération
+  });
+  
+  it('should handle edge cases', () => {
+    // Test cas limites
+  });
+});
+```
+
+## 🔗 RESSOURCES TECHNIQUES
+
+- **Builder Ledger** : [https://get-clear-signed.ledger.com/](https://get-clear-signed.ledger.com/)
+- **Documentation ERC-7730** : [https://developers.ledger.com/docs/clear-signing/understanding/what-is-it](https://developers.ledger.com/docs/clear-signing/understanding/what-is-it)
+- **Standard ERC-7730** : Référence officielle pour l'implémentation
+
+---
+
+**🎯 OBJECTIF FINAL** : Chaque utilisateur de LeBonKoin doit **toujours** savoir exactement ce qu'il signe, sans exception. La transparence totale est non négociable.

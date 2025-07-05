@@ -1,0 +1,187 @@
+# 🚀 HACKATHON MULTI-PARTENAIRES - RÈGLES D'INTÉGRATION
+
+## 🎯 OBJECTIF PRINCIPAL
+Développer une application qui intègre les **trois technologies partenaires** pour maximiser les gains :
+- **ERC-7730 Clear Signing** : $4,000 (1er: $2,500, 2e: $1,500)
+- **Circle CCTP V2 Multichain USDC** : $4,000 (1er: $2,500, 2e: $1,500)
+- **World Ecosystem** : $3,000 (partagé entre projets qualifiés)
+
+**POTENTIEL TOTAL : $11,000**
+
+## 🏗️ ARCHITECTURE TECHNIQUE OBLIGATOIRE
+
+### Stack Recommandé
+```typescript
+// Frontend: React/Next.js + TypeScript
+// Backend: Node.js/Express ou Python/FastAPI
+// Blockchain: Ethereum, Base, Arbitrum, Avalanche, Linea, Sonic
+// Intégrations: World ID, ERC-7730, Circle CCTP V2
+```
+
+### Structure de Projet Imposée
+```
+/src
+  /components     # Composants React avec intégrations
+  /hooks         # Hooks blockchain personnalisés
+  /services      # Services Circle, World, ERC-7730
+  /contracts     # Smart contracts et ABIs
+  /utils         # Utilitaires cross-chain
+  /types         # Types TypeScript
+/docs            # Documentation technique
+/diagrams        # Diagrammes d'architecture
+```
+
+## 🔧 INTÉGRATIONS PARTENAIRES OBLIGATOIRES
+
+### 1. ERC-7730 Clear Signing - TOUJOURS IMPLÉMENTER
+```typescript
+// Interface ERC-7730 obligatoire pour toutes les transactions
+interface ERC7730Descriptor {
+  schemaVersion: string;
+  metadata: {
+    name: string;
+    description: string;
+  };
+  display: {
+    formats: DisplayFormat[];
+  };
+}
+
+// RÈGLES STRICTES :
+// ✅ Créer des fichiers JSON ERC-7730 pour TOUS les protocoles DeFi
+// ✅ Validation des transactions avant signature
+// ✅ Affichage transparent des détails de transaction
+// ✅ Feedback utilisateur pour chaque signature
+```
+
+### 2. Circle CCTP V2 - CHAÎNES SUPPORTÉES UNIQUEMENT
+```typescript
+// CHAÎNES AUTORISÉES SEULEMENT
+const SUPPORTED_CHAINS = [
+  'ethereum', 'arbitrum', 'base', 'avalanche', 'linea', 'sonic'
+];
+
+// Interface CCTP obligatoire
+interface CCTPTransfer {
+  sourceChain: string;
+  destinationChain: string;
+  amount: string;
+  recipient: string;
+  hooks?: CCTPHooks; // BONUS POINTS - Implémenter si possible
+}
+
+// CAS D'USAGE PRIORITAIRES :
+// 🎯 Système de paiement marchand multichain
+// 🎯 Gestion de trésorerie multichain  
+// 🎯 Système d'intent pour fournisseurs de liquidité
+```
+
+### 3. World Ecosystem - INTÉGRATION OBLIGATOIRE
+```typescript
+// World ID OBLIGATOIRE
+import { WorldIDWidget } from '@worldcoin/idkit';
+
+// EXIGENCES STRICTES :
+// ✅ Intégration World ID fonctionnelle
+// ✅ Mini App World si possible
+// ✅ Construction sur World Chain recommandée
+// ❌ INTERDIT : projets de gambling/hasard
+```
+
+## 📋 LIVRABLES OBLIGATOIRES - CHECKLIST
+
+### ✅ MVP Fonctionnel
+- [ ] Frontend déployé et accessible
+- [ ] Backend opérationnel avec API
+- [ ] Diagramme d'architecture détaillé
+- [ ] Démonstration des 3 intégrations
+
+### ✅ Documentation Complète
+- [ ] README avec instructions setup
+- [ ] Documentation API complète
+- [ ] Guide utilisateur final
+- [ ] Diagrammes techniques
+
+### ✅ Présentation
+- [ ] Vidéo démo (5-10 minutes)
+- [ ] Présentation technique
+- [ ] Repo GitHub/Replit public
+- [ ] Spécification claire des bounties visés
+
+## 🏆 STRATÉGIE DE MAXIMISATION DES GAINS
+
+### Projet Idéal : "Universal DeFi Payment Gateway avec World ID"
+```typescript
+// Concept gagnant combinant les 3 technologies :
+// 1. Passerelle de paiement USDC multichain (CCTP V2)
+// 2. Signature transparente pour toutes les transactions DeFi (ERC-7730)
+// 3. Authentification World ID pour KYC/compliance
+// 4. Rééquilibrage automatique via CCTP V2 hooks
+```
+
+### Critères de Qualification
+- ✅ Intégration fonctionnelle des 3 technologies
+- ✅ Interface utilisateur exceptionnelle
+- ✅ Architecture scalable et sécurisée
+- ✅ Documentation complète
+- ✅ Démonstration convaincante
+
+## 🚨 RÈGLES DE DÉVELOPPEMENT STRICTES
+
+### Sécurité - NON NÉGOCIABLE
+```typescript
+// TOUJOURS implémenter :
+// - Validation de toutes les entrées utilisateur
+// - Gestion d'erreurs robuste
+// - Tests de sécurité pour smart contracts
+// - Audit des intégrations tierces
+```
+
+### Performance - MÉTRIQUES CIBLES
+```typescript
+// Objectifs de performance :
+// - Temps de transaction cross-chain < 5 minutes
+// - Taux de réussite des signatures ERC-7730 > 95%
+// - Support complet des 6 chaînes CCTP V2
+// - Intégration World ID fonctionnelle à 100%
+```
+
+### UX/UI - EXPÉRIENCE UTILISATEUR
+```typescript
+// Standards obligatoires :
+// - Design responsive et moderne
+// - Feedback utilisateur en temps réel
+// - Gestion des états de chargement
+// - Messages d'erreur clairs et actionnables
+```
+
+## 📊 CHECKLIST DE SOUMISSION
+
+### Avant Soumission - VÉRIFIER
+- [ ] Les 3 technologies sont intégrées et fonctionnelles
+- [ ] MVP déployé et accessible publiquement
+- [ ] Vidéo de démonstration enregistrée
+- [ ] Documentation complète et claire
+- [ ] Repo GitHub public avec README détaillé
+- [ ] Diagramme d'architecture inclus
+- [ ] Spécification des bounties visés
+
+### Évaluation - CRITÈRES CLÉS
+- [ ] Innovation technique
+- [ ] Qualité de l'implémentation
+- [ ] Expérience utilisateur
+- [ ] Potentiel d'adoption
+- [ ] Qualité de la présentation
+
+## 🔗 RESSOURCES TECHNIQUES ESSENTIELLES
+
+- [ERC-7730 Standard](https://eips.ethereum.org/EIPS/eip-7730)
+- [Circle CCTP V2 Documentation](https://developers.circle.com/stablecoins/cctp)
+- [World Developer Docs](https://docs.worldcoin.org/)
+- [Ledger Clear Signing](https://developers.ledger.com/docs/clear-signing/)
+
+---
+
+**🎯 OBJECTIF FINAL** : Créer une application révolutionnaire qui démontre l'avenir des paiements cross-chain sécurisés et transparents, avec une expérience utilisateur exceptionnelle alimentée par l'écosystème World.
+
+**💡 RAPPEL CONSTANT** : Chaque ligne de code doit servir au moins une des trois intégrations partenaires pour maximiser les chances de victoire !

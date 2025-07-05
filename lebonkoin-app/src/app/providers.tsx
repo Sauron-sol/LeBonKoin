@@ -5,7 +5,7 @@ import { WagmiProvider } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { RainbowKitProvider, lightTheme } from "@rainbow-me/rainbowkit";
 import { config } from "@/lib/wagmi";
-import { WorldIDProvider } from "@/lib/worldid";
+import { SelfProvider } from "@/lib/self";
 
 // Configuration React Query avec gestion des erreurs
 const queryClient = new QueryClient({
@@ -59,9 +59,9 @@ function ClientProviders({ children }: { children: ReactNode }) {
           })}
           showRecentTransactions={true}
         >
-          <WorldIDProvider>
+                  <SelfProvider>
             {children}
-          </WorldIDProvider>
+        </SelfProvider>
         </RainbowKitProvider>
       </QueryClientProvider>
     </WagmiProvider>

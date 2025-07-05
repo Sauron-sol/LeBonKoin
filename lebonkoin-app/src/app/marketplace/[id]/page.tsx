@@ -338,7 +338,7 @@ export default function ListingDetailPage() {
                 🔒 Transaction sécurisée
               </h4>
               <ul className="text-sm text-blue-800 space-y-1">
-                <li>✓ Vendeur vérifié par World ID</li>
+                <li>✓ Vendeur vérifié par Self ID</li>
                 <li>✓ Paiement sécurisé CCTP V2</li>
                 <li>✓ Signature transparente ERC-7730</li>
                 <li>✓ Protection contre la fraude</li>

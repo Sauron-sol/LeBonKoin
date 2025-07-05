@@ -8,12 +8,12 @@ const inter = Inter({ subsets: ["latin"] });
 
 export const metadata: Metadata = {
   title: "LeBonKoin - Marketplace Décentralisée",
-  description: "Marketplace sécurisée avec World ID, paiements CCTP V2 et signature transparente ERC-7730",
-  keywords: ["marketplace", "blockchain", "world id", "cctp", "erc-7730"],
+  description: "Marketplace sécurisée avec Self ID, paiements CCTP V2 et signature transparente ERC-7730",
+  keywords: ["marketplace", "blockchain", "self id", "cctp", "erc-7730"],
   authors: [{ name: "LeBonKoin Team" }],
   openGraph: {
     title: "LeBonKoin - Marketplace Décentralisée",
-    description: "Achetez et vendez en toute sécurité avec la vérification World ID",
+    description: "Achetez et vendez en toute sécurité avec la vérification Self ID",
     type: "website",
   },
 };

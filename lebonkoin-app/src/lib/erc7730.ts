@@ -293,7 +293,7 @@ export function formatERC7730Value(value: any, format?: string): string {
     default:
       return String(value);
   }
-}
+} 
 
 // ERC-7730 Clear Signing Implementation pour LeBonKoin
 // Standard pour la signature transparente sur Ledger et autres wallets

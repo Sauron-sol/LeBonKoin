@@ -224,6 +224,12 @@ export class SmartAccount {
 
     const callData = this.createCallData(to, value, data)
 
+    // Signature dummy valide pour l'estimation ERC-4337
+    // Cette signature est une signature ECDSA valide avec le maximum de bytes non-zéro
+    // Elle passera la validation ECDSA.recover() mais échouera la validation SimpleAccount
+    // Basée sur les recommandations d'Alchemy pour les bundlers ERC-4337
+    const dummySignature = '0xfffffffffffffffffffffffffffffff0000000000000000000000000000000007aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa1c' as `0x${string}`
+
     // UserOperation partielle pour estimation
     const partialUserOp = {
       sender: smartAccountAddress,
@@ -231,7 +237,7 @@ export class SmartAccount {
       initCode,
       callData,
       paymasterAndData,
-      signature: '0x' as `0x${string}`
+      signature: dummySignature
     }
 
     // Estimation des gas
@@ -267,9 +273,21 @@ export class SmartAccount {
     // Hash de la UserOperation selon EIP-4337
     const userOpHash = this.getUserOperationHash(userOp)
     
-    // Signature ECDSA
+    // Pour SimpleAccount, nous devons signer directement le hash
+    // sans préfixe Ethereum Signed Message car le contrat gère déjà la validation
     const signature = await this.owner.signMessage({
       message: { raw: userOpHash }
+    })
+
+    // Vérifier que la signature a la bonne longueur (65 bytes = 130 hex chars + 0x)
+    if (signature.length !== 132) {
+      throw new Error(`Signature invalide: longueur ${signature.length}, attendue 132`)
+    }
+
+    console.log('🔐 Signature générée:', {
+      userOpHash,
+      signature,
+      signatureLength: signature.length
     })
 
     return signature

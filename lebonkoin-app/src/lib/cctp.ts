@@ -176,7 +176,7 @@ export function isFastTransferSupported(chainId: number): boolean {
   // Fast Transfer supporté sur toutes les chaînes sauf Avalanche et Sonic en destination
   const fastTransferSupportedChains = [1, 8453, 42161, 59144, 480]; // Ethereum, Base, Arbitrum, Linea, World Chain
   return fastTransferSupportedChains.includes(chainId);
-}
+} 
 
 // Types pour CCTP
 export interface CCTPTransferParams {

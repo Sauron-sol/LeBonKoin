@@ -1,9 +1,11 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { useAccount, useChainId, useSwitchChain } from 'wagmi';
+import { useAccount, useChainId, useSwitchChain, useChains } from 'wagmi';
+import { sepolia } from 'viem/chains';
 import { useCirclePaymaster, usePaymasterCompatibility } from '../hooks/useCirclePaymaster';
 import { CCTP_CONTRACTS } from '../lib/cctp';
+import { isChainSupported as checkBundlerSupport } from '../lib/bundler';
 
 interface GaslessPaymentProps {
   recipientAddress: string;
@@ -21,6 +23,8 @@ export default function GaslessPayment({
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { switchChain } = useSwitchChain();
+  const chains = useChains();
+  const chain = chains.find(c => c.id === chainId);
   
   // Hook Circle Paymaster avec vraie intégration ERC-4337
   const {
@@ -33,17 +37,15 @@ export default function GaslessPayment({
     initializeSmartAccount,
     enableGaslessMode,
     performGaslessPayment,
-    checkDeployment,
-    clearError: clearPaymasterError,
+    isSmartAccountDeployed,
+    reset,
     isChainSupported
   } = useCirclePaymaster();
 
   // Hook de compatibilité
   const {
-    isSupported,
-    supportedChains,
-    bundlerAvailable,
-    erc4337Support
+    isPaymasterSupported,
+    supportedChains
   } = usePaymasterCompatibility();
 
   const [step, setStep] = useState<'connect' | 'init' | 'enable' | 'ready' | 'payment'>('connect');
@@ -56,9 +58,9 @@ export default function GaslessPayment({
   // Vérifier le déploiement du smart account
   useEffect(() => {
     if (smartAccount) {
-      checkDeployment().then(setIsDeployed);
+      isSmartAccountDeployed().then(setIsDeployed);
     }
-  }, [smartAccount, checkDeployment]);
+  }, [smartAccount, isSmartAccountDeployed]);
 
   // Déterminer l'étape actuelle
   useEffect(() => {
@@ -73,9 +75,20 @@ export default function GaslessPayment({
     }
   }, [isConnected, smartAccount, isGaslessMode]);
 
+  // Debug: Afficher les informations de chaîne
+  useEffect(() => {
+    console.log('🔍 Debug chaîne:', {
+      chainId,
+      chainName: chain?.name,
+      isSupported: isChainSupported(chainId),
+      bundlerSupported: checkBundlerSupport(chainId),
+      sepoliaId: sepolia.id,
+      currentChainMatchesSepolia: chainId === sepolia.id
+    });
+  }, [chainId, chain, isChainSupported]);
+
   const clearError = () => {
     setLocalError(null);
-    clearPaymasterError();
   };
 
   const handleSwitchToSupportedChain = async () => {
@@ -173,7 +186,7 @@ export default function GaslessPayment({
   }
 
   // Interface si chaîne non supportée
-  if (!isSupported) {
+  if (!isChainSupported(chainId)) {
     return (
       <div className="bg-red-50 border border-red-200 rounded-lg p-6">
         <div className="flex items-center mb-4">
@@ -373,7 +386,7 @@ export default function GaslessPayment({
         <div className="flex items-center justify-between text-xs text-gray-500">
           <span>Powered by Circle Paymaster + ERC-4337</span>
           <span>
-            {bundlerAvailable ? '✅ Bundler disponible' : '❌ Bundler indisponible'}
+            {checkBundlerSupport(chainId) ? '✅ Bundler disponible' : '❌ Bundler indisponible'}
           </span>
         </div>
       </div>

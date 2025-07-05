@@ -8,11 +8,11 @@ async function main() {
   // Créer des catégories
   const categories = await Promise.all([
     prisma.category.create({
-      data: {
-        name: 'Électronique',
-        icon: '📱',
-        slug: 'electronique'
-      }
+    data: {
+      name: 'Électronique',
+      icon: '📱',
+      slug: 'electronique'
+    }
     }),
     prisma.category.create({
       data: {

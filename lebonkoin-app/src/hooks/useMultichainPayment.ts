@@ -3,6 +3,7 @@ import { useAccount, useChainId, useSwitchChain, useWalletClient, usePublicClien
 import { parseUnits, formatUnits } from 'viem';
 import { cctpService, CCTPTransferParams, CCTP_CONTRACTS, CCTP_DOMAINS } from '../lib/cctp';
 import { erc7730Service } from '../lib/erc7730';
+import { erc7730Registry } from '../lib/erc7730-registry';
 
 export interface PaymentStep {
   id: string;
@@ -170,8 +171,8 @@ export function useMultichainPayment() {
     }));
   }, []);
 
-  // Générer la description ERC-7730 pour l'utilisateur
-  const generatePaymentDescription = useCallback((params: MultichainPaymentParams, fromChain: number) => {
+  // Générer la description ERC-7730 pour l'utilisateur (avec nouveau registry)
+  const generatePaymentDescription = useCallback(async (params: MultichainPaymentParams, fromChain: number) => {
     const contracts = CCTP_CONTRACTS[fromChain as keyof typeof CCTP_CONTRACTS];
     const targetDomain = CCTP_DOMAINS[params.targetChain as keyof typeof CCTP_DOMAINS] || 0;
     const cctpParams = {
@@ -181,6 +182,26 @@ export function useMultichainPayment() {
       burnToken: contracts?.usdc || '0x' // Adresse USDC correcte
     };
 
+    // 🎯 Essayer d'abord le nouveau registry ERC-7730 officiel
+    try {
+      const clearSigningDescription = await erc7730Registry.generateClearSigningDescription(
+        'cctp-transfer',
+        'depositForBurn',
+        cctpParams,
+        fromChain
+      );
+
+      // Si le registry ERC-7730 fonctionne, l'utiliser
+      if (clearSigningDescription) {
+        console.log('📋 ✅ Description ERC-7730 Clear Signing générée');
+        return clearSigningDescription;
+      }
+    } catch (error) {
+      console.warn('📋 ⚠️ Erreur avec le registry ERC-7730:', error);
+    }
+
+    // Sinon, fallback vers l'ancien service
+    console.log('📋 ⚠️ Fallback vers l\'ancien service ERC-7730');
     return erc7730Service.generateCCTPDescription('depositForBurn', cctpParams, fromChain);
   }, []);
 
@@ -300,7 +321,7 @@ export function useMultichainPayment() {
       updateStepStatus('cctp-transfer', 'loading');
       
       // Générer la description ERC-7730 complète pour le transfert
-      const transferDescription = generatePaymentDescription(params, fromChain);
+      const transferDescription = await generatePaymentDescription(params, fromChain);
       console.log('📋 Description du paiement (ERC-7730):', transferDescription);
 
       const transferParams: CCTPTransferParams = {

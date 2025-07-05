@@ -144,14 +144,14 @@ export default function ListingDetailPage() {
               {/* Image principale */}
               <div className="relative h-96 bg-gray-200">
                 {listing.images && listing.images.length > 0 ? (
-                  <Image
-                    src={listing.images[selectedImageIndex]}
-                    alt={listing.title}
-                    fill
+                <Image
+                  src={listing.images[selectedImageIndex]}
+                  alt={listing.title}
+                  fill
                     sizes="(max-width: 768px) 100vw, (max-width: 1200px) 66vw, 50vw"
                     priority={true}
-                    className="object-cover"
-                  />
+                  className="object-cover"
+                />
                 ) : (
                   <div className="flex items-center justify-center h-full text-gray-400">
                     <div className="text-center">
@@ -239,8 +239,8 @@ export default function ListingDetailPage() {
                       }}
                       className="w-full bg-green-600 text-white py-3 px-4 rounded-lg hover:bg-green-700 transition-colors font-semibold"
                     >
-                      💳 Acheter maintenant (CCTP V2)
-                    </button>
+                  💳 Acheter maintenant (CCTP V2)
+                </button>
                     
                     <button 
                       onClick={() => {

@@ -24,7 +24,7 @@ export interface Listing extends Omit<PrismaListing, 'price'> {
   };
   // Nombre de favoris calculé
   _count?: {
-    favorites: number;
+  favorites: number;
   };
 }
 

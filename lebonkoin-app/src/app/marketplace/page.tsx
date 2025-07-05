@@ -24,7 +24,7 @@ export default function MarketplacePage() {
       if (filters.category) searchParams.set('category', filters.category);
       if (filters.minPrice) searchParams.set('minPrice', filters.minPrice.toString());
       if (filters.maxPrice) searchParams.set('maxPrice', filters.maxPrice.toString());
-      if (filters.condition && filters.condition.length > 0) {
+    if (filters.condition && filters.condition.length > 0) {
         searchParams.set('condition', filters.condition.join(','));
       }
       if (filters.sortBy) searchParams.set('sortBy', filters.sortBy);
@@ -269,79 +269,79 @@ export default function MarketplacePage() {
 
             {/* Grid des annonces */}
             {!loading && (
-              <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                 {listings.map((listing) => (
-                  <Link
-                    key={listing.id}
-                    href={`/marketplace/${listing.id}`}
-                    className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-                  >
-                    {/* Image */}
-                    <div className="relative h-48 bg-gray-200">
+                <Link
+                  key={listing.id}
+                  href={`/marketplace/${listing.id}`}
+                  className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
+                >
+                  {/* Image */}
+                  <div className="relative h-48 bg-gray-200">
                       {listing.images && listing.images.length > 0 ? (
-                        <Image
-                          src={listing.images[0]}
-                          alt={listing.title}
-                          fill
+                    <Image
+                      src={listing.images[0]}
+                      alt={listing.title}
+                      fill
                           sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
                           priority={listings.indexOf(listing) < 4}
-                          className="object-cover"
-                        />
+                      className="object-cover"
+                    />
                       ) : (
                         <div className="flex items-center justify-center h-full text-gray-400">
                           📷 Pas d'image
                         </div>
                       )}
-                      {listing.seller.isVerified && (
-                        <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
-                          ✓ Vérifié
-                        </div>
-                      )}
+                    {listing.seller.isVerified && (
+                      <div className="absolute top-2 right-2 bg-green-500 text-white text-xs px-2 py-1 rounded-full">
+                        ✓ Vérifié
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Contenu */}
+                  <div className="p-4">
+                    <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
+                      {listing.title}
+                    </h3>
+                    
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xl font-bold text-blue-600">
+                        {formatPrice(listing.price, listing.currency)}
+                      </span>
+                      <span className="text-sm text-gray-500">
+                        {getConditionLabel(listing.condition)}
+                      </span>
                     </div>
 
-                    {/* Contenu */}
-                    <div className="p-4">
-                      <h3 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                        {listing.title}
-                      </h3>
-                      
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-xl font-bold text-blue-600">
-                          {formatPrice(listing.price, listing.currency)}
-                        </span>
-                        <span className="text-sm text-gray-500">
-                          {getConditionLabel(listing.condition)}
-                        </span>
-                      </div>
+                    <div className="flex items-center justify-between text-sm text-gray-500">
+                      <span>{listing.location.city}</span>
+                      <span>{formatDate(listing.createdAt)}</span>
+                    </div>
 
-                      <div className="flex items-center justify-between text-sm text-gray-500">
-                        <span>{listing.location.city}</span>
-                        <span>{formatDate(listing.createdAt)}</span>
-                      </div>
-
-                      <div className="flex items-center mt-3">
-                        <div className="w-6 h-6 bg-gray-300 rounded-full mr-2">
-                          {listing.seller.avatar && (
-                            <Image
-                              src={listing.seller.avatar}
+                    <div className="flex items-center mt-3">
+                      <div className="w-6 h-6 bg-gray-300 rounded-full mr-2">
+                        {listing.seller.avatar && (
+                          <Image
+                            src={listing.seller.avatar}
                               alt={listing.seller.name || 'Vendeur'}
-                              width={24}
-                              height={24}
-                              className="rounded-full"
-                            />
-                          )}
-                        </div>
-                        <span className="text-sm text-gray-600">
-                          {listing.seller.name || 'Vendeur anonyme'}
-                        </span>
-                        <span className="ml-auto text-xs text-gray-400">
-                          👁️ {listing.views}
-                        </span>
+                            width={24}
+                            height={24}
+                            className="rounded-full"
+                          />
+                        )}
                       </div>
+                      <span className="text-sm text-gray-600">
+                          {listing.seller.name || 'Vendeur anonyme'}
+                      </span>
+                      <span className="ml-auto text-xs text-gray-400">
+                        👁️ {listing.views}
+                      </span>
                     </div>
-                  </Link>
-                ))}
-              </div>
+                  </div>
+                </Link>
+              ))}
+            </div>
             )}
 
             {!loading && listings.length === 0 && (

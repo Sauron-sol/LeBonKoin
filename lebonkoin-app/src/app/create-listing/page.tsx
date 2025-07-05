@@ -225,7 +225,7 @@ export default function CreateListingPage() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* État */}
+            {/* État */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   État *
@@ -267,7 +267,7 @@ export default function CreateListingPage() {
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Région *
               </label>
-              <input
+                    <input
                 type="text"
                 required
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"

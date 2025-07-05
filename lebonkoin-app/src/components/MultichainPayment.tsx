@@ -109,24 +109,40 @@ export function MultichainPayment({
     }
   }, [selectedSourceChain, selectedTargetChain, listingPrice, estimateFees]);
 
-  // Générer la description ERC-7730 pour prévisualisation
-  const getTransactionPreview = () => {
-    if (!isConnected) return null;
+  // État pour la description ERC-7730
+  const [transactionPreview, setTransactionPreview] = useState<any>(null);
 
-    const params: MultichainPaymentParams = {
-      listingId,
-      amount: listingPrice,
-      sourceChain: selectedSourceChain, // ✅ Ajout de la chaîne source sélectionnée
-      targetChain: selectedTargetChain,
-      sellerAddress,
-      listingData: {
-        title: listingTitle,
-        category: 'Marketplace'
+  // Générer la description ERC-7730 pour prévisualisation
+  useEffect(() => {
+    if (!isConnected) {
+      setTransactionPreview(null);
+      return;
+    }
+
+    const loadTransactionPreview = async () => {
+      const params: MultichainPaymentParams = {
+        listingId,
+        amount: listingPrice,
+        sourceChain: selectedSourceChain,
+        targetChain: selectedTargetChain,
+        sellerAddress,
+        listingData: {
+          title: listingTitle,
+          category: 'Marketplace'
+        }
+      };
+
+      try {
+        const preview = await generatePaymentDescription(params, selectedSourceChain);
+        setTransactionPreview(preview);
+      } catch (error) {
+        console.error('Erreur génération preview ERC-7730:', error);
+        setTransactionPreview(null);
       }
     };
 
-    return generatePaymentDescription(params, selectedSourceChain);
-  };
+    loadTransactionPreview();
+  }, [isConnected, selectedSourceChain, selectedTargetChain, listingPrice, generatePaymentDescription, listingId, listingTitle, sellerAddress]);
 
   // Gérer le paiement
   const handlePayment = async () => {
@@ -179,7 +195,7 @@ export function MultichainPayment({
     }
   };
 
-  const transactionPreview = getTransactionPreview();
+
 
   return (
     <div className="max-w-2xl mx-auto bg-white rounded-xl shadow-lg overflow-hidden">
@@ -439,30 +455,36 @@ export function MultichainPayment({
                     </div>
                     
                     <div className="space-y-2">
-                      {transactionPreview.details.map((detail, index) => (
-                        <div key={index} className="flex justify-between text-sm">
-                          <span className="text-blue-600">{detail.label}:</span>
-                          <span className={`font-mono ${
-                            detail.type === 'amount' ? 'text-green-700 font-bold' :
-                            detail.type === 'address' ? 'text-gray-600' : 'text-blue-900'
-                          }`}>
-                            {detail.type === 'address' && detail.value.length > 20
-                              ? `${detail.value.slice(0, 6)}...${detail.value.slice(-4)}`
-                              : detail.value
-                            }
-                          </span>
+                      {transactionPreview.details && transactionPreview.details.length > 0 ? (
+                        transactionPreview.details.map((detail: any, index: number) => (
+                          <div key={index} className="flex justify-between text-sm">
+                            <span className="text-blue-600">{detail.label}:</span>
+                            <span className={`font-mono ${
+                              detail.type === 'amount' ? 'text-green-700 font-bold' :
+                              detail.type === 'address' ? 'text-gray-600' : 'text-blue-900'
+                            }`}>
+                              {detail.type === 'address' && detail.value.length > 20
+                                ? `${detail.value.slice(0, 6)}...${detail.value.slice(-4)}`
+                                : detail.value
+                              }
+                            </span>
+                          </div>
+                        ))
+                      ) : (
+                        <div className="text-sm text-gray-600">
+                          Détails de transaction en cours de génération...
                         </div>
-                      ))}
+                      )}
                     </div>
 
-                    {transactionPreview.risks.length > 0 && (
+                    {transactionPreview.risks && transactionPreview.risks.length > 0 && (
                       <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
                         <div className="font-medium text-yellow-800 text-sm mb-1">
                           ⚠️ Points d'attention
                         </div>
                         <ul className="text-xs text-yellow-700 space-y-1">
-                          {transactionPreview.risks.map((risk, index) => (
-                            <li key={index}>• {risk}</li>
+                          {transactionPreview.risks.map((risk: any, index: number) => (
+                            <li key={index}>• {typeof risk === 'string' ? risk : risk.message}</li>
                           ))}
                         </ul>
                       </div>

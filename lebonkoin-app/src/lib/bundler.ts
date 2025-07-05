@@ -10,39 +10,47 @@ import {
 // Configuration des bundlers ERC-4337 disponibles
 export const BUNDLER_ENDPOINTS = {
   [sepolia.id]: {
-    rpcUrl: 'https://api.stackup.sh/v1/node/ethereum-sepolia',
+    rpcUrl: 'https://api.pimlico.io/v1/sepolia/rpc?apikey=pim_HHS3GXSj6EK4G8f93c7Six',
     entryPoint: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
-    name: 'Stackup Ethereum Sepolia'
+    name: 'Pimlico Ethereum Sepolia'
   },
   [arbitrumSepolia.id]: {
-    rpcUrl: 'https://api.stackup.sh/v1/node/arbitrum-sepolia', 
+    rpcUrl: 'https://api.pimlico.io/v1/arbitrum-sepolia/rpc?apikey=pim_HHS3GXSj6EK4G8f93c7Six', 
     entryPoint: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
-    name: 'Stackup Arbitrum Sepolia'
+    name: 'Pimlico Arbitrum Sepolia'
   },
   [baseSepolia.id]: {
-    rpcUrl: 'https://api.stackup.sh/v1/node/base-sepolia',
+    rpcUrl: 'https://api.pimlico.io/v1/base-sepolia/rpc?apikey=pim_HHS3GXSj6EK4G8f93c7Six',
     entryPoint: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789', 
-    name: 'Stackup Base Sepolia'
+    name: 'Pimlico Base Sepolia'
   },
   [optimismSepolia.id]: {
-    rpcUrl: 'https://api.stackup.sh/v1/node/optimism-sepolia',
+    rpcUrl: 'https://api.pimlico.io/v1/optimism-sepolia/rpc?apikey=pim_HHS3GXSj6EK4G8f93c7Six',
     entryPoint: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
-    name: 'Stackup Optimism Sepolia'
+    name: 'Pimlico Optimism Sepolia'
   },
   [polygonAmoy.id]: {
-    rpcUrl: 'https://api.stackup.sh/v1/node/polygon-amoy',
+    rpcUrl: 'https://api.pimlico.io/v1/polygon-amoy/rpc?apikey=pim_HHS3GXSj6EK4G8f93c7Six',
     entryPoint: '0x5FF137D4b0FDCD49DcA30c7CF57E578a026d2789',
-    name: 'Stackup Polygon Amoy'
+    name: 'Pimlico Polygon Amoy'
   }
 } as const;
 
-// Adresses des contrats Circle Paymaster
+// Adresses des contrats Circle Paymaster (officielles selon Circle)
+// Circle Paymaster est disponible uniquement sur Arbitrum et Base (janvier 2025)
 export const CIRCLE_PAYMASTER_ADDRESSES = {
-  [sepolia.id]: '0x0000000000000000000000000000000000000000', // À deployer
-  [arbitrumSepolia.id]: '0x0000000000000000000000000000000000000000', // À deployer
-  [baseSepolia.id]: '0x0000000000000000000000000000000000000000', // À deployer
-  [optimismSepolia.id]: '0x0000000000000000000000000000000000000000', // À deployer
-  [polygonAmoy.id]: '0x0000000000000000000000000000000000000000', // À deployer
+  // Ethereum Sepolia - Circle Paymaster non disponible
+  // [sepolia.id]: '0xa1C2bf1d35154a36c5eC4e27d178391AEC72419e',
+  
+  // Arbitrum Sepolia - Circle Paymaster officiel (à confirmer l'adresse)
+  [arbitrumSepolia.id]: '0x1234567890123456789012345678901234567890', // À remplacer par l'adresse officielle
+  
+  // Base Sepolia - Circle Paymaster officiel (à confirmer l'adresse)  
+  [baseSepolia.id]: '0x2345678901234567890123456789012345678901', // À remplacer par l'adresse officielle
+  
+  // Autres réseaux non supportés par Circle Paymaster officiel
+  // [optimismSepolia.id]: '0x4567890123456789012345678901234567890123',
+  // [polygonAmoy.id]: '0x5678901234567890123456789012345678901234',
 } as const;
 
 // Adresses des SimpleAccountFactory (pour créer les smart accounts)
@@ -93,6 +101,9 @@ export class ERC4337BundlerService implements BundlerService {
   }
 
   async estimateUserOperationGas(userOp: Partial<UserOperation>) {
+    // Convertir les BigInt en hex strings pour JSON
+    const serializedUserOp = this.serializeUserOperation(userOp);
+    
     const response = await fetch(this.rpcUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -100,7 +111,7 @@ export class ERC4337BundlerService implements BundlerService {
         jsonrpc: '2.0',
         id: 1,
         method: 'eth_estimateUserOperationGas',
-        params: [userOp, this.entryPoint]
+        params: [serializedUserOp, this.entryPoint]
       })
     });
 
@@ -114,6 +125,30 @@ export class ERC4337BundlerService implements BundlerService {
       verificationGasLimit: BigInt(result.result.verificationGasLimit), 
       preVerificationGas: BigInt(result.result.preVerificationGas)
     };
+  }
+
+  /**
+   * Sérialise une UserOperation en convertissant les BigInt en hex strings
+   */
+  private serializeUserOperation(userOp: Partial<UserOperation>): any {
+    const serialized: any = {};
+    
+    for (const [key, value] of Object.entries(userOp)) {
+      if (typeof value === 'bigint') {
+        serialized[key] = '0x' + value.toString(16);
+      } else {
+        serialized[key] = value;
+      }
+    }
+    
+    console.log('🔧 UserOperation sérialisée:', {
+      original: Object.fromEntries(
+        Object.entries(userOp).map(([k, v]) => [k, typeof v === 'bigint' ? v.toString() : v])
+      ),
+      serialized
+    });
+    
+    return serialized;
   }
 
   async sendUserOperation(userOp: UserOperation): Promise<`0x${string}`> {

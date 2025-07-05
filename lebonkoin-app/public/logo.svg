@@ -1,0 +1,39 @@
+<svg width="40" height="40" viewBox="0 0 400 400" xmlns="http://www.w3.org/2000/svg">
+  <!-- Panier -->
+  <path d="M80 120 L60 120 C50 120 40 130 40 140 L40 160 C40 170 50 180 60 180 L80 180 L80 120 Z" fill="#3C4043"/>
+  
+  <!-- Corps du panier -->
+  <path d="M80 120 L320 120 C330 120 340 130 340 140 L320 320 C315 350 290 370 260 370 L140 370 C110 370 85 350 80 320 L80 120 Z" fill="#3C4043"/>
+  
+  <!-- Roues -->
+  <circle cx="140" cy="340" r="25" fill="#3C4043"/>
+  <circle cx="260" cy="340" r="25" fill="#3C4043"/>
+  
+  <!-- Feuille bleue -->
+  <g transform="translate(200, 80)">
+    <!-- Tige centrale -->
+    <path d="M0 -60 L0 60" stroke="#4285F4" stroke-width="8" fill="none"/>
+    
+    <!-- Feuilles -->
+    <path d="M0 -50 Q-15 -45 -20 -30 Q-15 -25 0 -30" fill="#4285F4"/>
+    <path d="M0 -50 Q15 -45 20 -30 Q15 -25 0 -30" fill="#4285F4"/>
+    
+    <path d="M0 -35 Q-20 -30 -25 -15 Q-20 -10 0 -15" fill="#4285F4"/>
+    <path d="M0 -35 Q20 -30 25 -15 Q20 -10 0 -15" fill="#4285F4"/>
+    
+    <path d="M0 -20 Q-25 -15 -30 0 Q-25 5 0 0" fill="#4285F4"/>
+    <path d="M0 -20 Q25 -15 30 0 Q25 5 0 0" fill="#4285F4"/>
+    
+    <path d="M0 -5 Q-30 0 -35 15 Q-30 20 0 15" fill="#4285F4"/>
+    <path d="M0 -5 Q30 0 35 15 Q30 20 0 15" fill="#4285F4"/>
+    
+    <path d="M0 10 Q-35 15 -40 30 Q-35 35 0 30" fill="#4285F4"/>
+    <path d="M0 10 Q35 15 40 30 Q35 35 0 30" fill="#4285F4"/>
+    
+    <path d="M0 25 Q-40 30 -45 45 Q-40 50 0 45" fill="#4285F4"/>
+    <path d="M0 25 Q40 30 45 45 Q40 50 0 45" fill="#4285F4"/>
+    
+    <!-- Pointe -->
+    <path d="M0 40 Q-20 50 0 60 Q20 50 0 40" fill="#4285F4"/>
+  </g>
+</svg> 

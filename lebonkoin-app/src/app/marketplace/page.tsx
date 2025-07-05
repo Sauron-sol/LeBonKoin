@@ -3,7 +3,51 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Listing, Category, SearchFilters, CONDITION_LABELS, Condition } from "@/types/marketplace";
+import { useAccount } from "wagmi";
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import Navbar from "@/components/Navbar";
+
+// Modal de connexion
+function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-white flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl border relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          aria-label="Fermer la modal"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Connexion</h2>
+        </div>
+        
+        <div className="space-y-4">
+          <p className="text-gray-600 text-center mb-6">
+            Vous devez connecter votre wallet pour voir les détails des produits
+          </p>
+          
+          <div className="flex justify-center">
+            <ConnectButton />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function MarketplacePage() {
   const [listings, setListings] = useState<Listing[]>([]);
@@ -13,6 +57,9 @@ export default function MarketplacePage() {
   const [filters, setFilters] = useState<SearchFilters>({
     sortBy: 'recent'
   });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const { isConnected } = useAccount();
+  const router = useRouter();
 
   // Fonction pour récupérer les annonces
   const fetchListings = async () => {
@@ -72,6 +119,17 @@ export default function MarketplacePage() {
     fetchListings();
   }, [filters]);
 
+  // Fonction pour ouvrir la modal depuis la navbar
+  useEffect(() => {
+    (window as any).openAuthModal = () => {
+      setIsAuthModalOpen(true);
+    };
+    
+    return () => {
+      delete (window as any).openAuthModal;
+    };
+  }, []);
+
   const formatPrice = (price: number, currency: string) => {
     return new Intl.NumberFormat('fr-FR', {
       style: 'currency',
@@ -88,6 +146,21 @@ export default function MarketplacePage() {
 
   const getConditionLabel = (condition: Condition) => {
     return CONDITION_LABELS[condition] || condition;
+  };
+
+  const handleConnectClick = () => {
+    if (!isConnected) {
+      setIsAuthModalOpen(true);
+    }
+  };
+
+  const handleProductClick = (listingId: string) => {
+    if (!isConnected) {
+      setIsAuthModalOpen(true);
+    } else {
+      // Rediriger vers la page du produit
+      router.push(`/marketplace/${listingId}`);
+    }
   };
 
   if (error) {
@@ -110,96 +183,34 @@ export default function MarketplacePage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <Link href="/" className="flex items-center">
-              <h1 className="text-2xl font-bold text-gray-900">🏪 LeBonKoin</h1>
-              <span className="ml-2 px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full">
-                Marketplace
-              </span>
-            </Link>
-            <div className="flex items-center space-x-4">
-              <Link
-                href="/create-listing"
-                className="bg-green-600 text-white px-4 py-2 rounded-lg hover:bg-green-700 transition-colors"
-              >
-                📝 Créer une annonce
-              </Link>
-            </div>
-          </div>
+      {/* Navbar commune */}
+      <Navbar />
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+        {/* Breadcrumb et titre */}
+        <div className="flex items-center mb-6">
+          <Link href="/" className="text-gray-500 hover:text-gray-700">
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M15 19l-7-7 7-7" />
+            </svg>
+          </Link>
+          <h1 className="ml-4 text-2xl font-semibold text-gray-900">
+            Search results for "{filters.query || 'all items'}"
+          </h1>
+          <span className="ml-auto text-sm text-gray-500">
+            {loading ? 'Chargement...' : `${listings.length} results`}
+          </span>
         </div>
-      </header>
 
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="flex flex-col lg:flex-row gap-8">
-          {/* Sidebar - Filtres */}
-          <div className="lg:w-1/4">
-            <div className="bg-white rounded-lg shadow-sm p-6 sticky top-8">
-              <h2 className="text-lg font-semibold text-gray-900 mb-4">Filtres</h2>
+        <div className="flex gap-8">
+          {/* Sidebar filtres */}
+          <div className="w-64 flex-shrink-0">
+            <div className="bg-white rounded-lg shadow-sm p-6">
+              <h3 className="font-semibold text-gray-900 mb-4">All categories</h3>
               
-              {/* Recherche */}
+              {/* Condition */}
               <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Rechercher
-                </label>
-                <input
-                  type="text"
-                  placeholder="Rechercher un objet..."
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={filters.query || ''}
-                  onChange={(e) => setFilters(prev => ({ ...prev, query: e.target.value }))}
-                />
-              </div>
-
-              {/* Catégories */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Catégorie
-                </label>
-                <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  value={filters.category || ''}
-                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value || undefined }))}
-                >
-                  <option value="">Toutes les catégories</option>
-                  {categories.map(category => (
-                    <option key={category.id} value={category.slug}>
-                      {category.icon} {category.name} ({category._count?.listings || 0})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {/* Prix */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Prix
-                </label>
-                <div className="flex gap-2">
-                  <input
-                    type="number"
-                    placeholder="Min"
-                    className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={filters.minPrice || ''}
-                    onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value ? Number(e.target.value) : undefined }))}
-                  />
-                  <input
-                    type="number"
-                    placeholder="Max"
-                    className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                    value={filters.maxPrice || ''}
-                    onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value ? Number(e.target.value) : undefined }))}
-                  />
-                </div>
-              </div>
-
-              {/* État */}
-              <div className="mb-6">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  État
-                </label>
+                <h4 className="font-medium text-gray-900 mb-3">Condition</h4>
                 <div className="space-y-2">
                   {(['NEW', 'LIKE_NEW', 'GOOD', 'FAIR'] as Condition[]).map(condition => (
                     <label key={condition} className="flex items-center">
@@ -229,12 +240,82 @@ export default function MarketplacePage() {
                 </div>
               </div>
 
+              {/* Item type */}
+              <div className="mb-6">
+                <h4 className="font-medium text-gray-900 mb-3">Item type</h4>
+                <div className="space-y-2">
+                  {['Used', 'Like new', 'Damaged'].map((type) => (
+                    <label key={type} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{type}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Category */}
+              <div className="mb-6">
+                <h4 className="font-medium text-gray-900 mb-3">Category</h4>
+                <select
+                  title="Sélectionner une catégorie"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  value={filters.category || ''}
+                  onChange={(e) => setFilters(prev => ({ ...prev, category: e.target.value || undefined }))}
+                >
+                  <option value="">Toutes les catégories</option>
+                  {categories.map(category => (
+                    <option key={category.id} value={category.slug}>
+                      {category.icon} {category.name} ({category._count?.listings || 0})
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Location */}
+              <div className="mb-6">
+                <h4 className="font-medium text-gray-900 mb-3">Location</h4>
+                <div className="space-y-2">
+                  {['Paris', 'Lyon', 'Marseille', 'Toulouse'].map((location) => (
+                    <label key={location} className="flex items-center">
+                      <input
+                        type="checkbox"
+                        className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                      />
+                      <span className="ml-2 text-sm text-gray-700">{location}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+
+              {/* Prix */}
+              <div className="mb-6">
+                <h4 className="font-medium text-gray-900 mb-3">Prix</h4>
+                <div className="flex gap-2">
+                  <input
+                    type="number"
+                    placeholder="Min"
+                    className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={filters.minPrice || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, minPrice: e.target.value ? Number(e.target.value) : undefined }))}
+                  />
+                  <input
+                    type="number"
+                    placeholder="Max"
+                    className="w-1/2 px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    value={filters.maxPrice || ''}
+                    onChange={(e) => setFilters(prev => ({ ...prev, maxPrice: e.target.value ? Number(e.target.value) : undefined }))}
+                  />
+                </div>
+              </div>
+
               {/* Trier par */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Trier par
-                </label>
+                <h4 className="font-medium text-gray-900 mb-3">Trier par</h4>
                 <select
+                  title="Sélectionner un tri"
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   value={filters.sortBy || 'recent'}
                   onChange={(e) => setFilters(prev => ({ ...prev, sortBy: e.target.value as any }))}
@@ -248,17 +329,8 @@ export default function MarketplacePage() {
             </div>
           </div>
 
-          {/* Main content - Listings */}
-          <div className="lg:w-3/4">
-            <div className="flex justify-between items-center mb-6">
-              <h1 className="text-2xl font-bold text-gray-900">
-                Toutes les annonces
-              </h1>
-              <p className="text-gray-600">
-                {loading ? 'Chargement...' : `${listings.length} annonce${listings.length > 1 ? 's' : ''} trouvée${listings.length > 1 ? 's' : ''}`}
-              </p>
-            </div>
-
+          {/* Grille des produits */}
+          <div className="flex-1">
             {/* Loading state */}
             {loading && (
               <div className="flex justify-center items-center py-12">
@@ -269,15 +341,15 @@ export default function MarketplacePage() {
 
             {/* Grid des annonces */}
             {!loading && (
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {listings.map((listing) => (
-                <Link
-                  key={listing.id}
-                  href={`/marketplace/${listing.id}`}
-                  className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden"
-                >
-                  {/* Image */}
-                  <div className="relative h-48 bg-gray-200">
+                  <div
+                    key={listing.id}
+                    onClick={() => handleProductClick(listing.id)}
+                    className="bg-white rounded-lg shadow-sm hover:shadow-md transition-shadow overflow-hidden cursor-pointer"
+                  >
+                    {/* Image */}
+                    <div className="relative h-48 bg-gray-200">
                       {listing.images && listing.images.length > 0 ? (
                     <Image
                       src={listing.images[0]}
@@ -339,9 +411,9 @@ export default function MarketplacePage() {
                       </span>
                     </div>
                   </div>
-                </Link>
-              ))}
-            </div>
+                  </div>
+                ))}
+              </div>
             )}
 
             {!loading && listings.length === 0 && (
@@ -355,9 +427,24 @@ export default function MarketplacePage() {
                 </p>
               </div>
             )}
+
+            {/* Bouton See more */}
+            {!loading && listings.length > 0 && (
+              <div className="mt-8 text-center">
+                <button className="bg-black text-white px-8 py-3 rounded-md hover:bg-gray-800 transition-colors">
+                  See more
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
+
+      {/* Modal de connexion */}
+      <AuthModal 
+        isOpen={isAuthModalOpen} 
+        onClose={() => setIsAuthModalOpen(false)} 
+      />
     </div>
   );
 } 

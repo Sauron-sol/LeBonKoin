@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Category, Currency, Condition, CONDITION_LABELS } from "@/types/marketplace";
+import Navbar from "@/components/Navbar";
 
 interface CreateListingForm {
   title: string;
@@ -62,10 +63,6 @@ export default function CreateListingPage() {
     fetchCategories();
   }, []);
 
-  const getConditionLabel = (condition: Condition) => {
-    return CONDITION_LABELS[condition] || condition;
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -87,7 +84,7 @@ export default function CreateListingPage() {
     if (files) {
       // Simulation d'upload d'images
       const newImages = Array.from(files).map((file, index) => 
-        `https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=500&h=500&fit=crop&sig=${index}`
+        `https://picsum.photos/500/500?random=${Date.now() + index}`
       );
       setForm(prev => ({
         ...prev,
@@ -123,25 +120,35 @@ export default function CreateListingPage() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <Link href="/marketplace" className="flex items-center text-gray-600 hover:text-gray-900">
-              <span className="mr-2">←</span>
-              <h1 className="text-lg font-medium">Retour à la marketplace</h1>
+      {/* Navbar commune */}
+      <Navbar />
+
+      {/* Breadcrumb */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+          <div className="flex items-center space-x-2 text-sm">
+            <Link href="/marketplace" className="text-gray-600 hover:text-gray-900">
+              ← Retour à la marketplace
             </Link>
+            <span className="text-gray-400">/</span>
+            <span className="text-gray-900 font-medium">Créer une nouvelle annonce</span>
           </div>
         </div>
-      </header>
+      </div>
 
+      {/* Contenu principal */}
       <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div className="bg-white rounded-lg shadow-sm p-6">
-          <h1 className="text-2xl font-bold text-gray-900 mb-6">
-            📝 Créer une nouvelle annonce
-          </h1>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="p-6 border-b border-gray-200">
+            <h1 className="text-2xl font-bold text-gray-900">
+              📝 Créer une nouvelle annonce
+            </h1>
+            <p className="text-gray-600 mt-1">
+              Remplissez les informations ci-dessous pour publier votre annonce
+            </p>
+          </div>
 
-          <form onSubmit={handleSubmit} className="space-y-6">
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
             {/* Titre */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -150,7 +157,7 @@ export default function CreateListingPage() {
               <input
                 type="text"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Ex: iPhone 15 Pro Max 256GB - Titane Naturel"
                 value={form.title}
                 onChange={(e) => setForm(prev => ({ ...prev, title: e.target.value }))}
@@ -164,8 +171,8 @@ export default function CreateListingPage() {
               </label>
               <textarea
                 required
-                rows={5}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={6}
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Décrivez votre objet en détail : état, utilisation, accessoires inclus..."
                 value={form.description}
                 onChange={(e) => setForm(prev => ({ ...prev, description: e.target.value }))}
@@ -184,13 +191,14 @@ export default function CreateListingPage() {
                     required
                     min="0"
                     step="0.01"
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    className="flex-1 px-4 py-3 border border-gray-300 rounded-l-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                     placeholder="1200"
                     value={form.price}
                     onChange={(e) => setForm(prev => ({ ...prev, price: e.target.value }))}
                   />
                   <select
-                    className="px-3 py-2 border border-l-0 border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    title="Devise"
+                    className="px-4 py-3 border border-l-0 border-gray-300 rounded-r-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                     value={form.currency}
                     onChange={(e) => setForm(prev => ({ ...prev, currency: e.target.value as Currency }))}
                   >
@@ -206,8 +214,9 @@ export default function CreateListingPage() {
                   Catégorie *
                 </label>
                 <select
+                  title="Catégorie"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   value={form.category}
                   onChange={(e) => setForm(prev => ({ ...prev, category: e.target.value }))}
                   disabled={loadingCategories}
@@ -231,7 +240,8 @@ export default function CreateListingPage() {
                   État *
                 </label>
                 <select
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  title="État de l'objet"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
                   value={form.condition}
                   onChange={(e) => setForm(prev => ({ ...prev, condition: e.target.value as Condition }))}
                 >
@@ -251,7 +261,7 @@ export default function CreateListingPage() {
                 <input
                   type="text"
                   required
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="Paris"
                   value={form.location.city}
                   onChange={(e) => setForm(prev => ({
@@ -270,7 +280,7 @@ export default function CreateListingPage() {
                     <input
                 type="text"
                 required
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 placeholder="Île-de-France"
                 value={form.location.region}
                 onChange={(e) => setForm(prev => ({
@@ -294,12 +304,14 @@ export default function CreateListingPage() {
                       <img
                         src={image}
                         alt={`Image ${index + 1}`}
-                        className="w-full h-24 object-cover rounded-lg border"
+                        className="w-full h-24 object-cover rounded-lg border border-gray-300"
                       />
                       <button
                         type="button"
                         onClick={() => removeImage(index)}
-                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600"
+                        className="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs hover:bg-red-600 transition-colors"
+                        title="Supprimer cette image"
+                        aria-label="Supprimer cette image"
                       >
                         ×
                       </button>
@@ -310,9 +322,10 @@ export default function CreateListingPage() {
 
               {/* Upload */}
               {form.images.length < 5 && (
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  <div className="text-4xl mb-2">📷</div>
-                  <p className="text-gray-600 mb-2">Ajoutez des photos de votre objet</p>
+                <div className="border-2 border-dashed border-gray-300 rounded-lg p-8 text-center hover:border-gray-400 transition-colors">
+                  <div className="text-4xl mb-3">📷</div>
+                  <p className="text-gray-600 mb-3 text-lg">Ajoutez des photos de votre objet</p>
+                  <p className="text-gray-500 text-sm mb-4">Les photos aident à vendre plus rapidement</p>
                   <input
                     type="file"
                     multiple
@@ -323,7 +336,7 @@ export default function CreateListingPage() {
                   />
                   <label
                     htmlFor="image-upload"
-                    className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer inline-block"
+                    className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors cursor-pointer inline-block font-medium"
                   >
                     Sélectionner des images
                   </label>
@@ -332,17 +345,17 @@ export default function CreateListingPage() {
             </div>
 
             {/* Boutons */}
-            <div className="flex justify-end space-x-4 pt-6 border-t">
+            <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
               <Link
                 href="/marketplace"
-                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                className="px-6 py-3 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors font-medium"
               >
                 Annuler
               </Link>
               <button
                 type="submit"
                 disabled={isSubmitting || loadingCategories}
-                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                className="px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center font-medium"
               >
                 {isSubmitting ? (
                   <>

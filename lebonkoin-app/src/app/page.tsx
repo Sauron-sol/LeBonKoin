@@ -7,6 +7,7 @@ import { useSelf } from "@/lib/self";
 import { isCCTPSupported, isFastTransferSupported } from "@/lib/wagmi";
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import Navbar from "@/components/Navbar";
 
 // Import dynamique pour éviter les erreurs SSR
 const SelfQRCode = dynamic(() => import("@/components/SelfQRCode"), {
@@ -19,12 +20,49 @@ const SelfQRCode = dynamic(() => import("@/components/SelfQRCode"), {
 
 type Step = 'wallet' | 'self' | 'marketplace';
 
+// Modal de connexion
+function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }) {
+  if (!isOpen) return null;
+
+  return (
+    <div 
+      className="fixed inset-0 bg-white flex items-center justify-center z-50"
+      onClick={onClose}
+    >
+      <div 
+        className="bg-white rounded-lg p-8 max-w-md w-full mx-4 shadow-2xl border relative"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <button
+          onClick={onClose}
+          className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
+          aria-label="Fermer la modal"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+        <div className="mb-6">
+          <h2 className="text-2xl font-bold text-gray-900">Connexion</h2>
+        </div>
+        
+        <div className="space-y-4">
+          <div className="flex justify-center">
+            <ConnectButton />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function HomePageContent() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
   const { isVerified, triggerSelfVerification, isLoading, error, selfProof, showQRCode } = useSelf();
   const [cctpSupported, setCctpSupported] = useState(false);
   const [fastTransferSupported, setFastTransferSupported] = useState(false);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
   const [currentStep, setCurrentStep] = useState<Step>('wallet');
 
@@ -51,26 +89,21 @@ function HomePageContent() {
     return 'pending';
   };
 
+  // Fonction pour ouvrir la modal depuis la navbar
+  useEffect(() => {
+    (window as any).openAuthModal = () => {
+      setIsAuthModalOpen(true);
+    };
+    
+    return () => {
+      delete (window as any).openAuthModal;
+    };
+  }, []);
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex justify-between items-center py-4">
-            <div className="flex items-center">
-              <h1 className="text-3xl font-bold text-gray-900">🏪 LeBonKoin</h1>
-              <span className="ml-3 px-3 py-1 bg-gradient-to-r from-blue-500 to-purple-600 text-white text-sm rounded-full font-medium">
-                Décentralisé
-              </span>
-            </div>
-            {isConnected && (
-              <div className="flex items-center space-x-4">
-                <ConnectButton />
-              </div>
-            )}
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-blue-50">
+      {/* Header avec Navbar */}
+      <Navbar />
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
@@ -177,80 +210,37 @@ function HomePageContent() {
                   disabled={isLoading}
                   className="w-full max-w-sm mx-auto bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-6 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center"
                 >
-                    <div className="flex items-center">
+                  <div className="flex items-center">
                     <span className="text-2xl mr-3">🔐</span>
-                    Vérifier avec Self ID
+                    {isLoading ? 'Chargement...' : 'Vérifier avec Self ID'}
                   </div>
                 </button>
               ) : (
-                <SelfQRCode
-                  onSuccess={(data) => {
-                    console.log('Vérification Self réussie:', data);
-                  }}
-                  onError={(error) => {
-                    console.error('Erreur Self:', error);
-                  }}
-                />
-              )}
-
-              {/* Affichage des détails de vérification si disponible */}
-              {selfProof && (
-                <div className="mt-8 bg-green-50 border border-green-200 rounded-lg p-6 text-left max-w-lg mx-auto">
-                  <h4 className="font-semibold text-green-900 mb-3 text-center">
-                    ✅ Détails de votre vérification Self ID
-                  </h4>
-                  <div className="space-y-2 text-sm">
-                    <div className="flex justify-between">
-                      <span className="text-green-700">Nationalité:</span>
-                      <span className="text-green-900 font-medium">{selfProof.nationality}</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-green-700">Âge minimum:</span>
-                      <span className="text-green-900 font-medium">{selfProof.olderThan}+ ans</span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-green-700">Sanctions OFAC:</span>
-                      <span className={`font-medium ${selfProof.isOfacValid ? 'text-green-900' : 'text-red-900'}`}>
-                        {selfProof.isOfacValid ? 'Aucune' : 'BLOQUÉ'}
-                      </span>
-                    </div>
-                    <div className="flex justify-between">
-                      <span className="text-green-700">Nom:</span>
-                      <span className="text-green-900 font-medium">{selfProof.name.join(' ')}</span>
-                  </div>
-                  </div>
+                <div className="space-y-6">
+                  <SelfQRCode 
+                    onSuccess={(data) => {
+                      console.log('✅ Vérification Self réussie:', data);
+                    }}
+                    onError={(error) => {
+                      console.error('❌ Erreur Self:', error);
+                    }}
+                  />
                 </div>
               )}
 
-              <div className="mt-8 bg-purple-50 border border-purple-200 rounded-lg p-6 text-left max-w-lg mx-auto">
-                <h4 className="font-semibold text-purple-900 mb-3 text-center">
-                  🔐 Comment fonctionne Self ID ?
-                </h4>
-                <ol className="text-sm text-purple-800 space-y-2">
-                  <li className="flex items-start">
-                    <span className="flex-shrink-0 w-6 h-6 bg-purple-200 text-purple-800 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">1</span>
-                    Cliquez sur "🔐 Vérifier avec Self ID" ci-dessus
-                  </li>
-                  <li className="flex items-start">
-                    <span className="flex-shrink-0 w-6 h-6 bg-purple-200 text-purple-800 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">2</span>
-                    Scannez le QR code avec l'app Self sur votre téléphone
-                  </li>
-                  <li className="flex items-start">
-                    <span className="flex-shrink-0 w-6 h-6 bg-purple-200 text-purple-800 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">3</span>
-                    Scannez votre document d'identité (passeport/carte ID UE)
-                  </li>
-                  <li className="flex items-start">
-                    <span className="flex-shrink-0 w-6 h-6 bg-purple-200 text-purple-800 rounded-full flex items-center justify-center text-xs font-bold mr-3 mt-0.5">4</span>
-                    Preuve ZK générée et vérifiée sur notre serveur
-                  </li>
-                </ol>
-                <p className="text-sm text-purple-700 mt-3 font-medium text-center">
-                  🔒 <strong>Sécurisé :</strong> Vos données personnelles ne quittent jamais votre appareil !
-                </p>
-                <p className="text-xs text-purple-600 mt-2 text-center">
-                  <strong>Vraie vérification Self SDK</strong> - Téléchargez l'app Self pour continuer
-                </p>
-              </div>
+              {isVerified && selfProof && (
+                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
+                  <div className="flex items-center justify-center text-green-700 mb-2">
+                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
+                    Identité vérifiée avec succès !
+                  </div>
+                  <div className="text-sm text-green-600">
+                    <p>✅ Âge vérifié (≥18 ans)</p>
+                    <p>✅ Nationalité: {selfProof.nationality}</p>
+                    <p>✅ Sanctions OFAC: {selfProof.isOfacValid ? 'Vérifié' : 'Non vérifié'}</p>
+                  </div>
+                </div>
+              )}
             </div>
           )}
 
@@ -258,99 +248,78 @@ function HomePageContent() {
             <div className="text-center">
               <div className="text-6xl mb-6">🎉</div>
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
-                Bienvenue sur LeBonKoin !
+                Prêt à commencer !
               </h3>
               <p className="text-gray-600 mb-8 max-w-md mx-auto">
-                Vous pouvez maintenant accéder à toutes les fonctionnalités de la marketplace décentralisée.
+                Votre wallet est connecté et votre identité est vérifiée. 
+                Vous pouvez maintenant accéder à la marketplace sécurisée.
               </p>
-
-              {/* Status cards */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-                <div className="bg-green-50 border border-green-200 rounded-lg p-4">
-                  <div className="text-2xl mb-2">👛</div>
-                  <div className="text-sm font-medium text-green-800">Wallet Connecté</div>
-                  <div className="text-xs text-green-600">{address?.slice(0, 10)}...</div>
-                </div>
-                <div className="bg-green-50 border-green-200 border rounded-lg p-4">
-                  <div className="text-2xl mb-2">🔐</div>
-                  <div className="text-sm font-medium text-green-800">
-                    Self ID Vérifié
-                  </div>
-                  <div className="text-xs text-green-600">
-                    Identité vérifiée
-                  </div>
-                </div>
-                <div className={`border rounded-lg p-4 ${
-                  cctpSupported ? 'bg-green-50 border-green-200' : 'bg-gray-50 border-gray-200'
-                }`}>
-                  <div className="text-2xl mb-2">⚡</div>
-                  <div className={`text-sm font-medium ${
-                    cctpSupported ? 'text-green-800' : 'text-gray-600'
-                  }`}>
-                    CCTP V2
-                  </div>
-                  <div className={`text-xs ${
-                    cctpSupported ? 'text-green-600' : 'text-gray-500'
-                  }`}>
-                    {cctpSupported ? 'Paiements rapides' : 'Non supporté'}
-                  </div>
-                </div>
-              </div>
-
-              {/* Action buttons */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center">
+              <div className="space-y-4">
                 <Link
                   href="/marketplace"
-                  className="bg-gradient-to-r from-blue-600 to-purple-600 text-white py-4 px-8 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all duration-300 font-semibold shadow-lg hover:shadow-xl flex items-center justify-center"
+                  className="inline-block bg-gradient-to-r from-green-600 to-blue-600 text-white py-4 px-8 rounded-xl hover:from-green-700 hover:to-blue-700 transition-all duration-300 shadow-lg hover:shadow-xl font-semibold"
                 >
-                  <span className="text-xl mr-2">🛒</span>
-                  Explorer la Marketplace
+                  🛒 Accéder à la Marketplace
                 </Link>
-                <Link
-                  href="/create-listing"
-                  className="bg-green-600 text-white py-4 px-8 rounded-xl hover:bg-green-700 transition-colors font-semibold shadow-lg hover:shadow-xl flex items-center justify-center"
-                >
-                  <span className="text-xl mr-2">📝</span>
-                  Créer une Annonce
-                </Link>
+                <div className="text-center">
+                  <Link
+                    href="/create-listing"
+                    className="inline-block text-blue-600 hover:text-blue-700 underline text-sm"
+                  >
+                    Ou créer une nouvelle annonce
+                  </Link>
+                </div>
               </div>
             </div>
           )}
         </div>
 
         {/* Features Section */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-          <div className="text-center bg-white rounded-xl p-6 shadow-lg">
-            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">🔒</span>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Sécurisé</h3>
-            <p className="text-gray-600">
-              Vérification d'identité Self ID avec contrôle âge, pays et sanctions OFAC
+        <div className="grid md:grid-cols-3 gap-8 mb-12">
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <div className="text-3xl mb-4">🔐</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Identité Vérifiée</h3>
+            <p className="text-gray-600 text-sm">
+              Vérification Self ID pour garantir l'âge, la nationalité et le statut sanctions OFAC.
             </p>
           </div>
           
-          <div className="text-center bg-white rounded-xl p-6 shadow-lg">
-            <div className="w-16 h-16 bg-gradient-to-br from-green-500 to-green-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">⚡</span>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Instantané</h3>
-            <p className="text-gray-600">
-              Paiements cross-chain avec CCTP V2 en 8-20 secondes
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <div className="text-3xl mb-4">⚡</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Paiements Instantanés</h3>
+            <p className="text-gray-600 text-sm">
+              {cctpSupported ? 'CCTP V2 supporté' : 'CCTP V2 non supporté'} sur cette chaîne.
+              {fastTransferSupported && ' Transferts rapides disponibles.'}
             </p>
           </div>
           
-          <div className="text-center bg-white rounded-xl p-6 shadow-lg">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-purple-600 rounded-full flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">👁️</span>
-            </div>
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Transparent</h3>
-            <p className="text-gray-600">
-              Signature claire avec ERC-7730 - vous savez toujours ce que vous signez
+          <div className="bg-white p-6 rounded-xl shadow-lg">
+            <div className="text-3xl mb-4">📝</div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">Signature Transparente</h3>
+            <p className="text-gray-600 text-sm">
+              ERC-7730 pour une transparence totale des transactions et métadonnées claires.
             </p>
           </div>
         </div>
+
+        {/* Network Info */}
+        <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
+          <h4 className="text-lg font-semibold text-blue-900 mb-2">
+            Réseau actuel: {chainId ? `Chain ID ${chainId}` : 'Non connecté'}
+          </h4>
+          <div className="flex justify-center space-x-4 text-sm">
+            <span className={`px-3 py-1 rounded-full ${cctpSupported ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'}`}>
+              CCTP V2: {cctpSupported ? '✅' : '❌'}
+            </span>
+            <span className={`px-3 py-1 rounded-full ${fastTransferSupported ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-700'}`}>
+              Transferts rapides: {fastTransferSupported ? '✅' : '❌'}
+            </span>
+          </div>
+        </div>
       </main>
+
+      {/* Auth Modal */}
+      <AuthModal isOpen={isAuthModalOpen} onClose={() => setIsAuthModalOpen(false)} />
     </div>
   );
 }

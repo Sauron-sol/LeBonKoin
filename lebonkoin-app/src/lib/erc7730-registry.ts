@@ -123,7 +123,7 @@ export class ERC7730Registry {
   } | null> {
     
     // Charger le schéma si pas déjà en cache
-    let schema = this.schemas.get(contractType);
+    let schema: ERC7730Schema | null = this.schemas.get(contractType) || null;
     if (!schema) {
       schema = await this.loadSchema(contractType);
       if (!schema) return null;

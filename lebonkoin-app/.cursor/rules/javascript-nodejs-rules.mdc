@@ -1,0 +1,639 @@
+# 🚀 JAVASCRIPT & NODE.JS - BACKEND LEBONKOIN
+
+## 🎯 RÈGLES JAVASCRIPT OBLIGATOIRES
+
+### ✅ Structure et Imports Standard
+```javascript
+// OBLIGATOIRE : Imports des 3 technologies en ES6
+import { WorldIDWidget, verifyCloudProof } from '@worldcoin/idkit';
+import { CCTPSDKv2 } from '@circle-fin/cctp-sdk';
+import { ethers } from 'ethers';
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import rateLimit from 'express-rate-limit';
+
+// OBLIGATOIRE : Configuration environnement
+const config = {
+  // World ID
+  WORLD_APP_ID: process.env.WORLD_APP_ID,
+  WORLD_API_KEY: process.env.WORLD_API_KEY,
+  
+  // Circle CCTP V2
+  CIRCLE_API_KEY: process.env.CIRCLE_API_KEY,
+  CCTP_ENVIRONMENT: process.env.NODE_ENV === 'production' ? 'mainnet' : 'testnet',
+  
+  // Blockchain
+  ETHEREUM_RPC: process.env.ETHEREUM_RPC,
+  BASE_RPC: process.env.BASE_RPC,
+  ARBITRUM_RPC: process.env.ARBITRUM_RPC,
+  
+  // LeBonKoin
+  ESCROW_CONTRACT_ADDRESS: process.env.ESCROW_CONTRACT_ADDRESS,
+  MONGODB_URI: process.env.MONGODB_URI,
+  JWT_SECRET: process.env.JWT_SECRET
+};
+
+// OBLIGATOIRE : Validation de la configuration
+const validateConfig = () => {
+  const requiredVars = [
+    'WORLD_APP_ID', 'CIRCLE_API_KEY', 'ETHEREUM_RPC', 
+    'ESCROW_CONTRACT_ADDRESS', 'MONGODB_URI', 'JWT_SECRET'
+  ];
+  
+  for (const varName of requiredVars) {
+    if (!config[varName]) {
+      throw new Error(`Variable d'environnement manquante: ${varName}`);
+    }
+  }
+};
+```
+
+### 🔧 Services Obligatoires
+```javascript
+// OBLIGATOIRE : Service World ID
+class WorldIDService {
+  constructor() {
+    this.appId = config.WORLD_APP_ID;
+    this.apiKey = config.WORLD_API_KEY;
+  }
+  
+  /**
+   * Vérifier un proof World ID
+   * @param {Object} proof - Proof World ID
+   * @param {string} action - Action à vérifier
+   * @param {string} signal - Signal de l'action
+   * @returns {Promise<Object>} Résultat de vérification
+   */
+  async verifyProof(proof, action, signal) {
+    try {
+      const verifyRes = await verifyCloudProof(
+        proof, 
+        this.appId, 
+        action, 
+        signal
+      );
+      
+      if (verifyRes.success) {
+        return {
+          success: true,
+          worldId: proof.nullifier_hash,
+          verified: true
+        };
+      } else {
+        throw new Error('Vérification World ID échouée');
+      }
+    } catch (error) {
+      console.error('Erreur World ID:', error);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+  
+  /**
+   * Vérifier l'unicité d'une action
+   * @param {string} worldId - World ID de l'utilisateur
+   * @param {string} action - Action à vérifier
+   * @returns {Promise<boolean>} True si l'action est unique
+   */
+  async checkActionUniqueness(worldId, action) {
+    // Vérifier en base de données que l'action n'a pas déjà été effectuée
+    const existingAction = await db.collection('world_actions').findOne({
+      worldId,
+      action,
+      createdAt: { $gte: new Date(Date.now() - 24 * 60 * 60 * 1000) } // 24h
+    });
+    
+    return !existingAction;
+  }
+}
+
+// OBLIGATOIRE : Service CCTP V2
+class CCTPService {
+  constructor() {
+    this.sdk = new CCTPSDKv2({
+      environment: config.CCTP_ENVIRONMENT,
+      apiKey: config.CIRCLE_API_KEY
+    });
+    
+    this.supportedChains = [
+      'ethereum', 'base', 'arbitrum', 'avalanche', 'linea', 'sonic'
+    ];
+  }
+  
+  /**
+   * Créer un Fast Transfer CCTP V2
+   * @param {Object} transferData - Données du transfert
+   * @returns {Promise<string>} Transaction ID
+   */
+  async createFastTransfer(transferData) {
+    try {
+      const { 
+        amount, 
+        sourceChain, 
+        destinationChain, 
+        recipient, 
+        listingId,
+        buyerId,
+        sellerId 
+      } = transferData;
+      
+      // Validation des chaînes supportées
+      if (!this.supportedChains.includes(sourceChain)) {
+        throw new Error(`Chaîne source non supportée: ${sourceChain}`);
+      }
+      
+      if (!this.supportedChains.includes(destinationChain)) {
+        throw new Error(`Chaîne destination non supportée: ${destinationChain}`);
+      }
+      
+      // Créer le transfert rapide
+      const transfer = await this.sdk.createFastTransfer({
+        amount: amount.toString(),
+        sourceChain,
+        destinationChain,
+        recipient,
+        metadata: {
+          listingId,
+          buyerId,
+          sellerId,
+          platform: 'lebonkoin'
+        }
+      });
+      
+      // Sauvegarder en base
+      await this.saveTransfer({
+        ...transferData,
+        transactionId: transfer.transactionId,
+        status: 'pending',
+        createdAt: new Date()
+      });
+      
+      return transfer.transactionId;
+    } catch (error) {
+      console.error('Erreur CCTP Fast Transfer:', error);
+      throw new Error(`Impossible de créer le transfert: ${error.message}`);
+    }
+  }
+  
+  /**
+   * Surveiller le statut d'un transfert
+   * @param {string} transactionId - ID de la transaction
+   * @returns {Promise<Object>} Statut du transfert
+   */
+  async monitorTransfer(transactionId) {
+    try {
+      const status = await this.sdk.getTransferStatus(transactionId);
+      
+      // Mettre à jour en base
+      await db.collection('cctp_transfers').updateOne(
+        { transactionId },
+        { 
+          $set: { 
+            status: status.status,
+            updatedAt: new Date()
+          }
+        }
+      );
+      
+      return status;
+    } catch (error) {
+      console.error('Erreur monitoring CCTP:', error);
+      throw error;
+    }
+  }
+  
+  async saveTransfer(transferData) {
+    await db.collection('cctp_transfers').insertOne(transferData);
+  }
+}
+
+// OBLIGATOIRE : Service ERC-7730
+class ERC7730Service {
+  constructor() {
+    this.providers = {
+      ethereum: new ethers.providers.JsonRpcProvider(config.ETHEREUM_RPC),
+      base: new ethers.providers.JsonRpcProvider(config.BASE_RPC),
+      arbitrum: new ethers.providers.JsonRpcProvider(config.ARBITRUM_RPC)
+    };
+  }
+  
+  /**
+   * Valider une transaction pour ERC-7730
+   * @param {Object} transaction - Transaction à valider
+   * @returns {Promise<Object>} Résultat de validation
+   */
+  async validateTransaction(transaction) {
+    try {
+      const { to, data, chainId } = transaction;
+      
+      // Obtenir le provider approprié
+      const provider = this.getProviderByChainId(chainId);
+      if (!provider) {
+        throw new Error(`Chaîne non supportée: ${chainId}`);
+      }
+      
+      // Décoder les données de transaction
+      const functionSelector = data.slice(0, 10);
+      
+      // Vérifier si un descripteur ERC-7730 existe
+      const contract = new ethers.Contract(to, ['function getTransactionMetadata(bytes4) view returns (string)'], provider);
+      
+      try {
+        const metadata = await contract.getTransactionMetadata(functionSelector);
+        
+        return {
+          isValid: true,
+          metadata: JSON.parse(metadata),
+          displayText: this.generateDisplayText(metadata, transaction)
+        };
+      } catch (error) {
+        // Pas de descripteur ERC-7730 disponible
+        return {
+          isValid: false,
+          error: 'Aucun descripteur ERC-7730 trouvé'
+        };
+      }
+    } catch (error) {
+      console.error('Erreur validation ERC-7730:', error);
+      return {
+        isValid: false,
+        error: error.message
+      };
+    }
+  }
+  
+  /**
+   * Générer le texte d'affichage pour une transaction
+   * @param {string} metadata - Métadonnées ERC-7730
+   * @param {Object} transaction - Transaction
+   * @returns {string} Texte d'affichage
+   */
+  generateDisplayText(metadata, transaction) {
+    try {
+      const meta = JSON.parse(metadata);
+      let displayText = meta.intent || 'Transaction LeBonKoin';
+      
+      // Remplacer les variables dans le texte
+      if (meta.fields && transaction.decodedParams) {
+        meta.fields.forEach(field => {
+          const value = transaction.decodedParams[field];
+          if (value) {
+            displayText = displayText.replace(`{{${field}}}`, value);
+          }
+        });
+      }
+      
+      return displayText;
+    } catch (error) {
+      return 'Transaction LeBonKoin';
+    }
+  }
+  
+  getProviderByChainId(chainId) {
+    const chainMap = {
+      1: 'ethereum',
+      8453: 'base',
+      42161: 'arbitrum'
+    };
+    
+    return this.providers[chainMap[chainId]];
+  }
+}
+```
+
+## 🌐 API EXPRESS OBLIGATOIRE
+
+### Configuration Serveur
+```javascript
+// OBLIGATOIRE : Configuration Express avec sécurité
+const app = express();
+
+// Middleware de sécurité obligatoires
+app.use(helmet());
+app.use(cors({
+  origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+  credentials: true
+}));
+
+// Rate limiting obligatoire
+const limiter = rateLimit({
+  windowMs: 15 * 60 * 1000, // 15 minutes
+  max: 100, // 100 requêtes par IP
+  message: 'Trop de requêtes, veuillez réessayer plus tard'
+});
+app.use(limiter);
+
+// Middleware de parsing
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
+
+// Middleware de logging
+app.use((req, res, next) => {
+  console.log(`${new Date().toISOString()} - ${req.method} ${req.path}`);
+  next();
+});
+```
+
+### Routes API Obligatoires
+```javascript
+// OBLIGATOIRE : Routes World ID
+app.post('/api/auth/verify-world-id', async (req, res) => {
+  try {
+    const { proof, action, signal } = req.body;
+    
+    // Validation des données
+    if (!proof || !action) {
+      return res.status(400).json({
+        success: false,
+        error: 'Proof et action requis'
+      });
+    }
+    
+    const worldIdService = new WorldIDService();
+    const result = await worldIdService.verifyProof(proof, action, signal);
+    
+    if (result.success) {
+      // Créer ou mettre à jour l'utilisateur
+      const user = await createOrUpdateUser({
+        worldId: result.worldId,
+        isVerified: true,
+        lastVerification: new Date()
+      });
+      
+      // Générer JWT
+      const token = jwt.sign(
+        { worldId: result.worldId, userId: user._id },
+        config.JWT_SECRET,
+        { expiresIn: '24h' }
+      );
+      
+      res.json({
+        success: true,
+        user,
+        token
+      });
+    } else {
+      res.status(401).json(result);
+    }
+  } catch (error) {
+    console.error('Erreur vérification World ID:', error);
+    res.status(500).json({
+      success: false,
+      error: 'Erreur serveur'
+    });
+  }
+});
+
+// OBLIGATOIRE : Routes CCTP V2
+app.post('/api/payments/create-fast-transfer', authenticateWorldID, async (req, res) => {
+  try {
+    const { 
+      listingId, 
+      amount, 
+      sourceChain, 
+      destinationChain,
+      sellerId 
+    } = req.body;
+    
+    // Validation des données
+    const validation = validatePaymentData(req.body);
+    if (!validation.isValid) {
+      return res.status(400).json({
+        success: false,
+        error: validation.error
+      });
+    }
+    
+    const cctpService = new CCTPService();
+    const transactionId = await cctpService.createFastTransfer({
+      listingId,
+      amount,
+      sourceChain,
+      destinationChain,
+      recipient: config.ESCROW_CONTRACT_ADDRESS,
+      buyerId: req.user.worldId,
+      sellerId
+    });
+    
+    res.json({
+      success: true,
+      transactionId,
+      estimatedTime: '8-20 secondes'
+    });
+  } catch (error) {
+    console.error('Erreur création Fast Transfer:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+app.get('/api/payments/status/:transactionId', authenticateWorldID, async (req, res) => {
+  try {
+    const { transactionId } = req.params;
+    
+    const cctpService = new CCTPService();
+    const status = await cctpService.monitorTransfer(transactionId);
+    
+    res.json({
+      success: true,
+      status
+    });
+  } catch (error) {
+    console.error('Erreur statut transfert:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+
+// OBLIGATOIRE : Routes ERC-7730
+app.post('/api/transactions/validate-erc7730', authenticateWorldID, async (req, res) => {
+  try {
+    const { transaction } = req.body;
+    
+    if (!transaction || !transaction.to || !transaction.data) {
+      return res.status(400).json({
+        success: false,
+        error: 'Données de transaction invalides'
+      });
+    }
+    
+    const erc7730Service = new ERC7730Service();
+    const validation = await erc7730Service.validateTransaction(transaction);
+    
+    res.json({
+      success: true,
+      validation
+    });
+  } catch (error) {
+    console.error('Erreur validation ERC-7730:', error);
+    res.status(500).json({
+      success: false,
+      error: error.message
+    });
+  }
+});
+```
+
+### Middleware d'Authentification
+```javascript
+// OBLIGATOIRE : Middleware World ID
+const authenticateWorldID = async (req, res, next) => {
+  try {
+    const token = req.headers.authorization?.replace('Bearer ', '');
+    
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token d\'authentification requis'
+      });
+    }
+    
+    const decoded = jwt.verify(token, config.JWT_SECRET);
+    
+    // Vérifier que l'utilisateur existe et est vérifié
+    const user = await db.collection('users').findOne({
+      worldId: decoded.worldId,
+      isVerified: true
+    });
+    
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Utilisateur non vérifié'
+      });
+    }
+    
+    req.user = user;
+    next();
+  } catch (error) {
+    return res.status(401).json({
+      success: false,
+      error: 'Token invalide'
+    });
+  }
+};
+```
+
+## 🗄️ BASE DE DONNÉES MONGODB
+
+### Schémas de Données
+```javascript
+// OBLIGATOIRE : Schéma utilisateur
+const userSchema = {
+  worldId: { type: String, required: true, unique: true },
+  isVerified: { type: Boolean, default: false },
+  reputation: { type: Number, default: 0 },
+  preferredChains: [String],
+  escrowTransactions: [String],
+  createdAt: { type: Date, default: Date.now },
+  lastVerification: Date,
+  profile: {
+    isAnonymous: { type: Boolean, default: true },
+    canSell: { type: Boolean, default: true },
+    canBuy: { type: Boolean, default: true },
+    maxTransactionAmount: { type: String, default: '1000' }
+  }
+};
+
+// OBLIGATOIRE : Schéma annonce
+const listingSchema = {
+  id: { type: String, required: true, unique: true },
+  title: { type: String, required: true },
+  description: { type: String, required: true },
+  price: { type: String, required: true }, // USDC
+  images: [String],
+  category: { type: String, required: true },
+  location: String,
+  sellerId: { type: String, required: true }, // World ID
+  acceptedChains: [String],
+  status: { 
+    type: String, 
+    enum: ['active', 'sold', 'reserved'], 
+    default: 'active' 
+  },
+  requiresClearSigning: { type: Boolean, default: true },
+  escrowAddress: String,
+  createdAt: { type: Date, default: Date.now }
+};
+
+// OBLIGATOIRE : Schéma transfert CCTP
+const cctpTransferSchema = {
+  transactionId: { type: String, required: true, unique: true },
+  listingId: { type: String, required: true },
+  buyerId: { type: String, required: true }, // World ID
+  sellerId: { type: String, required: true }, // World ID
+  amount: { type: String, required: true },
+  sourceChain: { type: String, required: true },
+  destinationChain: { type: String, required: true },
+  status: { 
+    type: String, 
+    enum: ['pending', 'completed', 'failed'], 
+    default: 'pending' 
+  },
+  cctpMessageHash: String,
+  createdAt: { type: Date, default: Date.now },
+  completedAt: Date
+};
+```
+
+## 🚨 GESTION D'ERREURS
+
+### Handler d'Erreurs Global
+```javascript
+// OBLIGATOIRE : Gestion d'erreurs centralisée
+class LeBonKoinError extends Error {
+  constructor(message, type, statusCode = 500) {
+    super(message);
+    this.type = type;
+    this.statusCode = statusCode;
+  }
+}
+
+// Types d'erreurs spécifiques
+const ErrorTypes = {
+  WORLD_ID_ERROR: 'WORLD_ID_ERROR',
+  CCTP_ERROR: 'CCTP_ERROR',
+  ERC7730_ERROR: 'ERC7730_ERROR',
+  VALIDATION_ERROR: 'VALIDATION_ERROR',
+  DATABASE_ERROR: 'DATABASE_ERROR'
+};
+
+// Middleware de gestion d'erreurs
+app.use((error, req, res, next) => {
+  console.error('Erreur:', error);
+  
+  if (error instanceof LeBonKoinError) {
+    return res.status(error.statusCode).json({
+      success: false,
+      error: error.message,
+      type: error.type
+    });
+  }
+  
+  // Erreur générique
+  res.status(500).json({
+    success: false,
+    error: 'Erreur serveur interne',
+    type: 'SERVER_ERROR'
+  });
+});
+```
+
+---
+
+**🎯 RÈGLES ABSOLUES JAVASCRIPT** :
+- ✅ **ES6+** obligatoire avec imports/exports
+- ✅ **World ID** vérifié pour toutes les routes sensibles
+- ✅ **CCTP V2** pour tous les paiements
+- ✅ **ERC-7730** validation pour toutes les transactions
+- ✅ **Express** avec middleware de sécurité
+- ✅ **MongoDB** avec schémas validés
+- ✅ **JWT** pour l'authentification
+- ✅ **Gestion d'erreurs** centralisée et typée

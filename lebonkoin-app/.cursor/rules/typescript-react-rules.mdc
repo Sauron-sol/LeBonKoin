@@ -1,0 +1,372 @@
+# ⚛️ TYPESCRIPT & REACT - LEBONKOIN HACKATHON
+
+## 🎯 RÈGLES TYPESCRIPT OBLIGATOIRES
+
+### ✅ Imports et Types Obligatoires
+```typescript
+// TOUJOURS importer les types des 3 technologies
+import type { 
+  // World ID
+  WorldIDWidget, 
+  VerificationResponse,
+  // CCTP V2
+  CCTPTransfer,
+  FastTransferResponse,
+  // ERC-7730
+  ERC7730Descriptor,
+  ClearSigningResult
+} from '@/types/hackathon';
+
+// OBLIGATOIRE : Types LeBonKoin avec intégrations
+interface LeBonKoinUser {
+  worldId: string;                    // World ID obligatoire
+  isVerified: boolean;               // Statut World ID
+  reputation: number;                // Score 0-100
+  preferredChains: string[];         // Chaînes CCTP V2
+  escrowTransactions: string[];      // Historique escrow
+  clearSigningEnabled: boolean;      // ERC-7730 activé
+}
+
+interface LeBonKoinListing {
+  id: string;
+  title: string;
+  description: string;
+  price: string;                     // Prix en USDC
+  sellerId: string;                  // World ID du vendeur
+  acceptedChains: string[];          // Chaînes CCTP V2 acceptées
+  requiresClearSigning: boolean;     // ERC-7730 obligatoire
+  escrowAddress?: string;            // Adresse contrat escrow
+}
+```
+
+### 🔒 Hooks Personnalisés Obligatoires
+```typescript
+// OBLIGATOIRE : Hook World ID pour tous les composants
+const useWorldID = () => {
+  const [isVerified, setIsVerified] = useState<boolean>(false);
+  const [worldId, setWorldId] = useState<string>('');
+  
+  const verifyIdentity = useCallback(async (proof: any) => {
+    try {
+      const response = await verifyCloudProof(proof, APP_ID, action);
+      if (response.success) {
+        setIsVerified(true);
+        setWorldId(proof.nullifier_hash);
+      }
+    } catch (error) {
+      console.error('World ID verification failed:', error);
+    }
+  }, []);
+  
+  return { isVerified, worldId, verifyIdentity };
+};
+
+// OBLIGATOIRE : Hook CCTP V2 pour tous les paiements
+const useCCTPPayment = () => {
+  const [isTransferring, setIsTransferring] = useState<boolean>(false);
+  const [transferStatus, setTransferStatus] = useState<string>('idle');
+  
+  const createFastTransfer = useCallback(async (payment: LeBonKoinPayment) => {
+    setIsTransferring(true);
+    try {
+      const cctpService = new LeBonKoinCCTPService();
+      const txId = await cctpService.createFastPayment(payment);
+      setTransferStatus('success');
+      return txId;
+    } catch (error) {
+      setTransferStatus('error');
+      throw error;
+    } finally {
+      setIsTransferring(false);
+    }
+  }, []);
+  
+  return { createFastTransfer, isTransferring, transferStatus };
+};
+
+// OBLIGATOIRE : Hook ERC-7730 pour signature transparente
+const useERC7730 = () => {
+  const validateTransaction = useCallback(async (tx: TransactionRequest) => {
+    try {
+      const descriptor = await getERC7730Descriptor(tx.to, tx.data);
+      return descriptor !== null;
+    } catch (error) {
+      console.error('ERC-7730 validation failed:', error);
+      return false;
+    }
+  }, []);
+  
+  return { validateTransaction };
+};
+```
+
+### 🎨 Composants React Standards
+```typescript
+// OBLIGATOIRE : Tous les composants doivent être fonctionnels avec TypeScript strict
+const LeBonKoinComponent: React.FC<Props> = ({ prop1, prop2 }) => {
+  // TOUJOURS utiliser les hooks personnalisés
+  const { isVerified, worldId, verifyIdentity } = useWorldID();
+  const { createFastTransfer, isTransferring } = useCCTPPayment();
+  const { validateTransaction } = useERC7730();
+  
+  // OBLIGATOIRE : Gestion d'erreur avec types stricts
+  const [error, setError] = useState<string | null>(null);
+  const [loading, setLoading] = useState<boolean>(false);
+  
+  // OBLIGATOIRE : Validation World ID avant actions sensibles
+  const handleSensitiveAction = useCallback(async () => {
+    if (!isVerified) {
+      setError('Vérification World ID requise');
+      return;
+    }
+    
+    try {
+      setLoading(true);
+      // Action avec les 3 technologies...
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Erreur inconnue');
+    } finally {
+      setLoading(false);
+    }
+  }, [isVerified]);
+  
+  return (
+    <div className="lebonkoin-component">
+      {/* Interface utilisateur... */}
+    </div>
+  );
+};
+```
+
+## 🚨 RÈGLES DE SÉCURITÉ TYPESCRIPT
+
+### Validation Stricte
+```typescript
+// TOUJOURS valider les données avec Zod
+import { z } from 'zod';
+
+const LeBonKoinPaymentSchema = z.object({
+  listingId: z.string().uuid(),
+  buyerId: z.string().min(1), // World ID
+  sellerId: z.string().min(1), // World ID
+  amount: z.string().regex(/^\d+(\.\d{1,6})?$/), // USDC avec 6 décimales max
+  sourceChain: z.enum(['ethereum', 'base', 'arbitrum', 'avalanche', 'linea', 'sonic']),
+  destinationChain: z.enum(['ethereum', 'base', 'arbitrum', 'avalanche', 'linea', 'sonic']),
+  requiresClearSigning: z.boolean().default(true)
+});
+
+// OBLIGATOIRE : Validation avant chaque action
+const validatePayment = (payment: unknown): LeBonKoinPayment => {
+  return LeBonKoinPaymentSchema.parse(payment);
+};
+```
+
+### Gestion d'Erreurs Typées
+```typescript
+// OBLIGATOIRE : Types d'erreurs spécifiques LeBonKoin
+type LeBonKoinError = 
+  | { type: 'WORLD_ID_ERROR'; message: string }
+  | { type: 'CCTP_ERROR'; message: string; chain?: string }
+  | { type: 'ERC7730_ERROR'; message: string; contractAddress?: string }
+  | { type: 'ESCROW_ERROR'; message: string; escrowId?: string };
+
+// OBLIGATOIRE : Hook de gestion d'erreurs
+const useErrorHandler = () => {
+  const [error, setError] = useState<LeBonKoinError | null>(null);
+  
+  const handleError = useCallback((error: unknown) => {
+    if (error instanceof Error) {
+      // Catégoriser l'erreur selon le contexte
+      if (error.message.includes('World ID')) {
+        setError({ type: 'WORLD_ID_ERROR', message: error.message });
+      } else if (error.message.includes('CCTP')) {
+        setError({ type: 'CCTP_ERROR', message: error.message });
+      } else if (error.message.includes('ERC-7730')) {
+        setError({ type: 'ERC7730_ERROR', message: error.message });
+      } else {
+        setError({ type: 'ESCROW_ERROR', message: error.message });
+      }
+    }
+  }, []);
+  
+  return { error, handleError, clearError: () => setError(null) };
+};
+```
+
+## 📱 RÈGLES REACT SPÉCIFIQUES
+
+### Structure des Composants
+```typescript
+// OBLIGATOIRE : Structure standardisée pour tous les composants
+interface ComponentProps {
+  // Props obligatoires
+  user: LeBonKoinUser;
+  listing?: LeBonKoinListing;
+  
+  // Props optionnelles
+  onSuccess?: (result: any) => void;
+  onError?: (error: LeBonKoinError) => void;
+  className?: string;
+}
+
+const LeBonKoinComponent: React.FC<ComponentProps> = ({
+  user,
+  listing,
+  onSuccess,
+  onError,
+  className = ''
+}) => {
+  // 1. Hooks personnalisés en premier
+  const { isVerified, worldId } = useWorldID();
+  const { createFastTransfer } = useCCTPPayment();
+  const { validateTransaction } = useERC7730();
+  
+  // 2. State local
+  const [loading, setLoading] = useState(false);
+  const [data, setData] = useState<any>(null);
+  
+  // 3. Effects
+  useEffect(() => {
+    // Validation World ID au montage
+    if (!isVerified) {
+      onError?.({ type: 'WORLD_ID_ERROR', message: 'Vérification requise' });
+    }
+  }, [isVerified, onError]);
+  
+  // 4. Handlers
+  const handleAction = useCallback(async () => {
+    // Implémentation...
+  }, []);
+  
+  // 5. Render
+  return (
+    <div className={`lebonkoin-component ${className}`}>
+      {/* JSX... */}
+    </div>
+  );
+};
+```
+
+### Optimisations Performance
+```typescript
+// OBLIGATOIRE : Mémorisation pour les composants coûteux
+const ExpensiveComponent = React.memo<Props>(({ data }) => {
+  // OBLIGATOIRE : useMemo pour calculs coûteux
+  const processedData = useMemo(() => {
+    return data.map(item => ({
+      ...item,
+      displayPrice: formatUSDC(item.price),
+      chainName: getChainName(item.sourceChain)
+    }));
+  }, [data]);
+  
+  return <div>{/* Render... */}</div>;
+});
+
+// OBLIGATOIRE : useCallback pour les handlers
+const useOptimizedHandlers = () => {
+  const handlePayment = useCallback(async (payment: LeBonKoinPayment) => {
+    // Handler optimisé...
+  }, []);
+  
+  const handleWorldIDVerification = useCallback(async (proof: any) => {
+    // Handler optimisé...
+  }, []);
+  
+  return { handlePayment, handleWorldIDVerification };
+};
+```
+
+## 🎯 PATTERNS OBLIGATOIRES
+
+### Context Providers
+```typescript
+// OBLIGATOIRE : Context pour les données globales
+interface LeBonKoinContextType {
+  user: LeBonKoinUser | null;
+  isAuthenticated: boolean;
+  supportedChains: string[];
+  currentChain: string;
+  
+  // Actions
+  login: (worldIdProof: any) => Promise<void>;
+  logout: () => void;
+  switchChain: (chainId: string) => Promise<void>;
+}
+
+const LeBonKoinContext = React.createContext<LeBonKoinContextType | null>(null);
+
+// OBLIGATOIRE : Hook pour utiliser le context
+const useLeBonKoin = () => {
+  const context = useContext(LeBonKoinContext);
+  if (!context) {
+    throw new Error('useLeBonKoin must be used within LeBonKoinProvider');
+  }
+  return context;
+};
+```
+
+### Formulaires Typés
+```typescript
+// OBLIGATOIRE : Formulaires avec react-hook-form et validation Zod
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const ListingFormSchema = z.object({
+  title: z.string().min(3).max(100),
+  description: z.string().min(10).max(1000),
+  price: z.string().regex(/^\d+(\.\d{1,6})?$/),
+  category: z.enum(['electronics', 'clothing', 'books', 'other']),
+  acceptedChains: z.array(z.string()).min(1)
+});
+
+type ListingFormData = z.infer<typeof ListingFormSchema>;
+
+const CreateListingForm: React.FC = () => {
+  const { register, handleSubmit, formState: { errors } } = useForm<ListingFormData>({
+    resolver: zodResolver(ListingFormSchema)
+  });
+  
+  const onSubmit = async (data: ListingFormData) => {
+    // Soumission avec validation...
+  };
+  
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      {/* Champs de formulaire... */}
+    </form>
+  );
+};
+```
+
+## 📊 MÉTRIQUES ET MONITORING
+
+### Tracking Obligatoire
+```typescript
+// OBLIGATOIRE : Tracking des événements hackathon
+const useHackathonTracking = () => {
+  const trackWorldIDVerification = useCallback((success: boolean) => {
+    analytics.track('world_id_verification', { success });
+  }, []);
+  
+  const trackCCTPTransfer = useCallback((chain: string, amount: string) => {
+    analytics.track('cctp_transfer', { chain, amount });
+  }, []);
+  
+  const trackERC7730Signature = useCallback((contractAddress: string) => {
+    analytics.track('erc7730_signature', { contractAddress });
+  }, []);
+  
+  return { trackWorldIDVerification, trackCCTPTransfer, trackERC7730Signature };
+};
+```
+
+---
+
+**🎯 RÈGLES ABSOLUES** :
+- ✅ **TypeScript strict** activé
+- ✅ **World ID** vérifié avant toute action sensible
+- ✅ **CCTP V2** pour tous les paiements
+- ✅ **ERC-7730** pour toutes les signatures
+- ✅ **Gestion d'erreurs** typée et complète
+- ✅ **Performance** optimisée avec memo/callback

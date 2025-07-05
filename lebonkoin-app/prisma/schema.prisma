@@ -1,0 +1,157 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  address      String   @unique // Wallet address
+  worldIdHash  String?  @unique // World ID nullifier hash
+  isVerified   Boolean  @default(false)
+  reputation   Int      @default(0)
+  name         String?
+  avatar       String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  // Relations
+  listings     Listing[]
+  purchases    Transaction[] @relation("Buyer")
+  sales        Transaction[] @relation("Seller")
+  favorites    Favorite[]
+
+  @@map("users")
+}
+
+model Category {
+  id       String    @id @default(cuid())
+  name     String    @unique
+  icon     String
+  slug     String    @unique
+  listings Listing[]
+
+  @@map("categories")
+}
+
+model Listing {
+  id          String      @id @default(cuid())
+  title       String
+  description String
+  price       Decimal     @db.Decimal(10, 2)
+  currency    Currency    @default(EUR)
+  condition   Condition
+  status      ListingStatus @default(ACTIVE)
+  
+  // Location
+  city        String
+  region      String
+  country     String      @default("France")
+  
+  // Media
+  images      String[]    // Array of image URLs/paths
+  
+  // Metadata
+  views       Int         @default(0)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  
+  // Relations
+  sellerId    String
+  seller      User        @relation(fields: [sellerId], references: [id], onDelete: Cascade)
+  categoryId  String
+  category    Category    @relation(fields: [categoryId], references: [id])
+  
+  transactions Transaction[]
+  favorites    Favorite[]
+
+  @@map("listings")
+}
+
+model Transaction {
+  id              String            @id @default(cuid())
+  amount          Decimal           @db.Decimal(10, 2)
+  currency        Currency
+  status          TransactionStatus @default(PENDING)
+  paymentMethod   PaymentMethod     @default(CCTP)
+  
+  // Blockchain data
+  txHash          String?           @unique
+  chainId         Int?
+  blockNumber     Int?
+  
+  // CCTP specific
+  cctpDomain      Int?
+  messageHash     String?           @unique
+  
+  // ERC-7730 metadata
+  erc7730Metadata Json?
+  
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @updatedAt
+  
+  // Relations
+  buyerId         String
+  buyer           User              @relation("Buyer", fields: [buyerId], references: [id])
+  sellerId        String
+  seller          User              @relation("Seller", fields: [sellerId], references: [id])
+  listingId       String
+  listing         Listing           @relation(fields: [listingId], references: [id])
+
+  @@map("transactions")
+}
+
+model Favorite {
+  id        String   @id @default(cuid())
+  createdAt DateTime @default(now())
+  
+  // Relations
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  listingId String
+  listing   Listing  @relation(fields: [listingId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, listingId])
+  @@map("favorites")
+}
+
+// Enums
+enum Currency {
+  EUR
+  USDC
+}
+
+enum Condition {
+  NEW
+  LIKE_NEW
+  GOOD
+  FAIR
+  POOR
+}
+
+enum ListingStatus {
+  ACTIVE
+  SOLD
+  RESERVED
+  HIDDEN
+}
+
+enum TransactionStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CCTP
+  CRYPTO
+  ESCROW
+} 

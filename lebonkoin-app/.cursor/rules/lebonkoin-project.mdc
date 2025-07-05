@@ -1,0 +1,265 @@
+# 🛒 LEBONKOIN - MARKETPLACE DÉCENTRALISÉE
+
+## 🎯 VISION DU PROJET
+**LeBonKoin** est une plateforme décentralisée d'achat/vente d'objets physiques entre particuliers, combinant :
+- **Sécurité** : Paiements USDC bloqués jusqu'à confirmation de réception
+- **Transparence** : Signature claire de toutes les transactions (ERC-7730)
+- **Confiance** : Identité vérifiée anonymement via World ID
+- **Liberté** : Paiements multichain sans intermédiaire centralisé
+
+## 🏗️ ARCHITECTURE LEBONKOIN
+
+### Stack Technique Spécialisé
+```typescript
+// Frontend: Next.js + TypeScript + Tailwind CSS
+// Backend: Node.js + Express + MongoDB
+// Blockchain: Ethereum (principal), Base, Arbitrum, Avalanche
+// Paiements: Circle CCTP V2 (USDC multichain)
+// Identité: World ID (KYC anonyme)
+// Signatures: ERC-7730 (transparence totale)
+```
+
+### Structure Projet LeBonKoin
+```
+/src
+  /components
+    /marketplace    # Composants d'annonces et recherche
+    /payment       # Composants de paiement CCTP V2
+    /identity      # Composants World ID
+    /escrow        # Composants de dépôt de garantie
+  /hooks
+    /useWorldID    # Hook d'authentification World ID
+    /useCCTP       # Hook de paiements multichain
+    /useEscrow     # Hook de gestion des dépôts
+  /services
+    /worldService  # Service World ID
+    /cctpService   # Service Circle CCTP V2
+    /escrowService # Service de dépôt de garantie
+  /contracts
+    /LeBonKoinEscrow.sol    # Smart contract principal
+    /ERC7730Descriptors/    # Fichiers JSON ERC-7730
+```
+
+## 🔧 INTÉGRATIONS SPÉCIFIQUES LEBONKOIN
+
+### 1. World ID - Identité Vérifiée Anonyme
+```typescript
+// OBLIGATOIRE : Vérification World ID pour tous les utilisateurs
+interface LeBonKoinUser {
+  worldId: string;          // Identifiant World ID vérifié
+  reputation: number;       // Score de réputation
+  isVerified: boolean;      // Statut de vérification
+  createdAt: Date;
+}
+
+// Cas d'usage LeBonKoin :
+// ✅ Inscription obligatoire avec World ID
+// ✅ Prévention des faux comptes
+// ✅ Système de réputation basé sur l'identité
+// ✅ KYC anonyme pour la confiance
+```
+
+### 2. Circle CCTP V2 - Paiements USDC Multichain
+```typescript
+// Paiements USDC sur toutes les chaînes supportées
+interface LeBonKoinPayment {
+  listingId: string;        // ID de l'annonce
+  buyerId: string;          // World ID de l'acheteur
+  sellerId: string;         // World ID du vendeur
+  amount: string;           // Montant en USDC
+  sourceChain: string;      // Chaîne source du paiement
+  escrowAddress: string;    // Adresse du contrat de dépôt
+  status: 'pending' | 'escrowed' | 'released' | 'refunded';
+}
+
+// Flux de paiement LeBonKoin :
+// 1. Acheteur paie en USDC (n'importe quelle chaîne CCTP V2)
+// 2. Fonds bloqués dans contrat escrow
+// 3. Vendeur expédie l'objet
+// 4. Acheteur confirme réception
+// 5. Fonds libérés vers le vendeur
+```
+
+### 3. ERC-7730 - Signature Transparente
+```typescript
+// Descripteurs ERC-7730 pour toutes les actions LeBonKoin
+interface LeBonKoinERC7730 {
+  // Signature transparente pour paiement
+  paymentDescriptor: {
+    schemaVersion: "1.0.0",
+    metadata: {
+      name: "LeBonKoin - Paiement Sécurisé",
+      description: "Paiement pour achat d'objet avec dépôt de garantie"
+    },
+    display: {
+      formats: [{
+        intent: "Payer {{amount}} USDC pour {{itemName}}",
+        fields: ["amount", "itemName", "sellerId"]
+      }]
+    }
+  };
+  
+  // Signature transparente pour libération de fonds
+  releaseDescriptor: {
+    metadata: {
+      name: "LeBonKoin - Confirmation de Réception",
+      description: "Libération des fonds vers le vendeur"
+    }
+  };
+}
+```
+
+## 📋 FONCTIONNALITÉS CORE LEBONKOIN
+
+### 🛍️ Marketplace
+```typescript
+// Annonces d'objets physiques
+interface Listing {
+  id: string;
+  title: string;
+  description: string;
+  price: string;              // Prix en USDC
+  images: string[];
+  category: string;
+  location: string;
+  sellerId: string;           // World ID du vendeur
+  acceptedChains: string[];   // Chaînes CCTP V2 acceptées
+  status: 'active' | 'sold' | 'reserved';
+  createdAt: Date;
+}
+
+// RÈGLES OBLIGATOIRES :
+// ✅ Seuls les utilisateurs World ID peuvent créer des annonces
+// ✅ Prix uniquement en USDC
+// ✅ Support multichain via CCTP V2
+// ✅ Géolocalisation pour objets physiques
+```
+
+### 🔒 Système Escrow (Dépôt de Garantie)
+```typescript
+// Smart contract de dépôt sécurisé
+interface EscrowContract {
+  // Création du dépôt
+  createEscrow(listingId: string, buyerId: string, amount: string): Promise<string>;
+  
+  // Libération des fonds (acheteur confirme réception)
+  releaseFunds(escrowId: string): Promise<void>;
+  
+  // Remboursement (en cas de litige)
+  refundBuyer(escrowId: string): Promise<void>;
+  
+  // Toutes les fonctions utilisent ERC-7730 pour signature transparente
+}
+```
+
+### 🌍 Gestion Multichain
+```typescript
+// Support des 6 chaînes CCTP V2
+const LEBONKOIN_SUPPORTED_CHAINS = [
+  'ethereum',    // Chaîne principale
+  'base',        // Chaîne recommandée (frais bas)
+  'arbitrum',    // Alternative L2
+  'avalanche',   // Support supplémentaire
+  'linea',       // Expansion
+  'sonic'        // Innovation
+];
+
+// Logique de rééquilibrage automatique
+// Les vendeurs peuvent recevoir sur leur chaîne préférée
+// via les hooks CCTP V2 (BONUS POINTS)
+```
+
+## 🚀 PARCOURS UTILISATEUR LEBONKOIN
+
+### 1. Inscription
+```typescript
+// Flux d'inscription obligatoire
+const registrationFlow = {
+  step1: "Connexion World ID",
+  step2: "Vérification d'identité anonyme",
+  step3: "Création du profil LeBonKoin",
+  step4: "Configuration des préférences de chaîne"
+};
+```
+
+### 2. Vente d'Objet
+```typescript
+const sellingFlow = {
+  step1: "Création de l'annonce avec photos",
+  step2: "Définition du prix en USDC",
+  step3: "Sélection des chaînes acceptées",
+  step4: "Publication sur la marketplace"
+};
+```
+
+### 3. Achat d'Objet
+```typescript
+const buyingFlow = {
+  step1: "Sélection de l'objet",
+  step2: "Signature ERC-7730 transparente du paiement",
+  step3: "Paiement USDC bloqué en escrow",
+  step4: "Attente de livraison",
+  step5: "Confirmation de réception",
+  step6: "Signature ERC-7730 de libération des fonds"
+};
+```
+
+## 🛡️ SÉCURITÉ LEBONKOIN
+
+### Protection Anti-Fraude
+```typescript
+// Mesures de sécurité obligatoires
+const securityMeasures = {
+  worldIdVerification: true,    // Identité vérifiée
+  escrowProtection: true,       // Fonds protégés
+  clearSigning: true,          // Signature transparente
+  reputationSystem: true,      // Système de réputation
+  disputeResolution: true      // Résolution de litiges
+};
+```
+
+### Gestion des Litiges
+```typescript
+// Processus de résolution de conflit
+interface DisputeResolution {
+  timeoutPeriod: number;       // Délai avant litige automatique
+  mediationProcess: boolean;   // Médiation communautaire
+  automaticRefund: boolean;    // Remboursement automatique
+  reputationImpact: boolean;   // Impact sur la réputation
+}
+```
+
+## 📊 MÉTRIQUES DE SUCCÈS LEBONKOIN
+
+### KPIs Techniques
+- ✅ Temps de transaction cross-chain < 5 minutes
+- ✅ Taux de réussite des signatures ERC-7730 > 98%
+- ✅ Support des 6 chaînes CCTP V2 fonctionnel
+- ✅ Vérification World ID à 100%
+
+### KPIs Business
+- ✅ Taux de satisfaction utilisateur > 95%
+- ✅ Temps de résolution des litiges < 48h
+- ✅ Croissance du nombre d'annonces
+- ✅ Volume de transactions USDC
+
+## 🎯 DIFFÉRENCIATEURS LEBONKOIN
+
+### Avantages Concurrentiels
+1. **Sécurité maximale** : Fonds protégés par escrow + World ID
+2. **Transparence totale** : Signature claire de toutes les actions
+3. **Liberté de paiement** : USDC sur 6 chaînes différentes
+4. **Identité vérifiée** : Confiance sans révéler l'identité réelle
+5. **Frais minimaux** : Pas d'intermédiaire centralisé
+
+### Innovation Technique
+- Premier marketplace décentralisé avec ERC-7730
+- Intégration native World ID pour la confiance
+- Paiements multichain transparents
+- Système de réputation décentralisé
+
+---
+
+**🎯 MISSION LEBONKOIN** : Révolutionner les échanges entre particuliers en combinant la simplicité d'usage de LeBonCoin avec la sécurité, la transparence et la liberté de la blockchain.
+
+**💡 CHAQUE FONCTIONNALITÉ** doit servir la mission : faciliter les échanges sécurisés d'objets physiques entre personnes réelles, vérifiées mais anonymes.

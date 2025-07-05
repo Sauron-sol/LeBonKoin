@@ -1,0 +1,122 @@
+{
+  "$schema": "https://schemas.erc7730.org/erc7730-v1.schema.json",
+  "context": {
+    "contract": {
+      "abi": [
+        {
+          "type": "function",
+          "name": "depositForBurn",
+          "stateMutability": "nonpayable",
+          "inputs": [
+            { "name": "amount", "type": "uint256" },
+            { "name": "destinationDomain", "type": "uint32" },
+            { "name": "mintRecipient", "type": "bytes32" },
+            { "name": "burnToken", "type": "address" },
+            { "name": "destinationCaller", "type": "bytes32" },
+            { "name": "maxFee", "type": "uint256" },
+            { "name": "minFinalityThreshold", "type": "uint32" }
+          ],
+          "outputs": []
+        }
+      ],
+      "deployments": [
+        {
+          "chainId": 11155111,
+          "address": "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA"
+        },
+        {
+          "chainId": 84532,
+          "address": "0x8FE6B999Dc680CcFDD5Bf7EB0974218be2542DAA"
+        }
+      ]
+    }
+  },
+  "metadata": {
+    "title": "LeBonKoin - Paiement Cross-Chain",
+    "description": "Transfert USDC cross-chain via CCTP V2 pour un achat sur LeBonKoin marketplace",
+    "domain": "lebonkoin.marketplace",
+    "tags": ["marketplace", "cctp", "cross-chain", "payment", "usdc"],
+    "website": "https://lebonkoin-marketplace.vercel.app"
+  },
+  "display": {
+    "definitions": {
+      "depositForBurn": {
+        "format": "transaction",
+        "intent": "🛒 Payer un article sur LeBonKoin",
+        "description": "Cette transaction transfère vos USDC vers le vendeur sur une autre blockchain via le protocole CCTP V2 de Circle.",
+        "fields": [
+          {
+            "path": "amount",
+            "label": "💰 Montant du paiement",
+            "format": "token",
+            "params": {
+              "token": {
+                "address": "0x1c7D4B196Cb0C7B01d743Fbc6116a902379C7238",
+                "symbol": "USDC",
+                "decimals": 6
+              }
+            }
+          },
+          {
+            "path": "destinationDomain",
+            "label": "🌐 Blockchain de destination",
+            "format": "enum",
+            "params": {
+              "values": {
+                "0": "Ethereum",
+                "6": "Base",
+                "3": "Arbitrum",
+                "1": "Avalanche"
+              }
+            }
+          },
+          {
+            "path": "mintRecipient",
+            "label": "👤 Adresse du vendeur",
+            "format": "addressFromBytes32"
+          },
+          {
+            "path": "maxFee",
+            "label": "💸 Frais maximum CCTP",
+            "format": "token",
+            "params": {
+              "token": {
+                "symbol": "USDC",
+                "decimals": 6
+              }
+            }
+          },
+          {
+            "path": "minFinalityThreshold", 
+            "label": "⚡ Mode de transfert",
+            "format": "enum",
+            "params": {
+              "values": {
+                "1000": "🚀 Fast Transfer (5-15 min)",
+                "15000": "🐌 Standard Transfer (15-30 min)"
+              }
+            }
+          }
+        ],
+        "required": ["amount", "destinationDomain", "mintRecipient"],
+        "risks": [
+          {
+            "type": "cross_chain",
+            "severity": "medium", 
+            "message": "🔄 Transaction cross-chain - vérifiez la blockchain de destination"
+          },
+          {
+            "type": "irreversible",
+            "severity": "high",
+            "message": "⚠️ Cette transaction est irréversible une fois confirmée"
+          },
+          {
+            "type": "fee",
+            "severity": "low",
+            "message": "💰 Des frais CCTP s'appliquent en plus des frais de gas"
+          }
+        ]
+      }
+    }
+  }
+} 

@@ -1,0 +1,99 @@
+{
+  "$schema": "https://schemas.ledger.com/erc7730/1.0.0/erc7730.json",
+  "context": {
+    "contract": {
+      "name": "CCTP TokenMessenger",
+      "deployments": {
+        "1": {
+          "address": "0xBd3fa81B58Ba92a82136038B25aDec7066af3155",
+          "contractName": "TokenMessenger"
+        },
+        "43114": {
+          "address": "0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982",
+          "contractName": "TokenMessenger"
+        },
+        "8453": {
+          "address": "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
+          "contractName": "TokenMessenger"
+        },
+        "42161": {
+          "address": "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+          "contractName": "TokenMessenger"
+        },
+        "59144": {
+          "address": "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5",
+          "contractName": "TokenMessenger"
+        }
+      }
+    }
+  },
+  "metadata": {
+    "displayName": "LeBonKoin - Paiement USDC Cross-Chain",
+    "description": "Système de paiement sécurisé utilisant CCTP V2 pour les achats sur LeBonKoin marketplace décentralisée",
+    "author": "LeBonKoin Team",
+    "version": "1.0.0",
+    "schema": "https://schemas.ledger.com/erc7730/1.0.0/erc7730.json"
+  },
+  "display": {
+    "depositForBurn": {
+      "intent": "🛒 Achat sur LeBonKoin via CCTP",
+      "description": "Transfert USDC cross-chain pour acheter un article sur la marketplace LeBonKoin",
+      "fields": {
+        "amount": {
+          "label": "Montant à payer",
+          "format": "token_amount",
+          "params": {
+            "tokenPath": "$.burnToken",
+            "decimals": 6,
+            "symbol": "USDC"
+          }
+        },
+        "destinationDomain": {
+          "label": "Chaîne de destination",
+          "format": "chain_domain",
+          "description": "Domaine CCTP de la blockchain de destination"
+        },
+        "mintRecipient": {
+          "label": "Vendeur (destinataire)",
+          "format": "address",
+          "description": "Adresse du vendeur qui recevra les USDC"
+        },
+        "burnToken": {
+          "label": "Token à dépenser",
+          "format": "address",
+          "description": "Adresse du contrat USDC sur la chaîne source"
+        }
+      },
+      "required": ["amount", "destinationDomain", "mintRecipient", "burnToken"]
+    }
+  },
+  "constants": {
+    "chain_domains": {
+      "0": "Ethereum",
+      "1": "Avalanche",
+      "3": "Arbitrum",
+      "6": "Base",
+      "9": "Linea"
+    },
+    "usdc_addresses": {
+      "1": "0xA0b86a33E6417eFb5d93A5AD57F7e7Dced8B0Af",
+      "43114": "0x5425890298aed601595a70AB815c96711a31Bc65",
+      "8453": "0x036CbD53842c5426634e7929541eC2318f3dCF7e",
+      "42161": "0x75faf114eafb1BDbe2F0316DF893fd58CE46AA4d",
+      "59144": "0x176211869cA2b568f2A7D4EE941E073a821EE1ff"
+    }
+  },
+  "security": {
+    "trusted_contracts": [
+      "0xBd3fa81B58Ba92a82136038B25aDec7066af3155",
+      "0x6B25532e1060CE10cc3B0A99e5683b91BFDe6982",
+      "0x1682Ae6375C4E4A97e4B583BC394c861A46D8962",
+      "0x19330d10D9Cc8751218eaf51E8885D058642E08A",
+      "0x9f3B8679c73C2Fef8b59B4f3444d4e156fb70AA5"
+    ],
+    "warnings": {
+      "high_value_threshold": "1000000000",
+      "cross_chain_notice": "Transfert cross-chain : vérifiez soigneusement la chaîne de destination et l'adresse du destinataire"
+    }
+  }
+} 

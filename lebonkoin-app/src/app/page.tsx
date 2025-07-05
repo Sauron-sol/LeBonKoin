@@ -59,7 +59,7 @@ function AuthModal({ isOpen, onClose }: { isOpen: boolean; onClose: () => void }
 function HomePageContent() {
   const { address, isConnected } = useAccount();
   const chainId = useChainId();
-  const { isVerified, triggerSelfVerification, isLoading, error, selfProof, showQRCode } = useSelf();
+  const { isVerified, triggerSelfVerification, isLoading, error, selfProof, showQRCode, handleSelfSuccess, handleSelfError } = useSelf();
   const [cctpSupported, setCctpSupported] = useState(false);
   const [fastTransferSupported, setFastTransferSupported] = useState(false);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
@@ -75,10 +75,13 @@ function HomePageContent() {
   useEffect(() => {
     if (!isConnected) {
       setCurrentStep('wallet');
+      console.log('🔄 Étape: wallet (non connecté)');
     } else if (!isVerified) {
       setCurrentStep('self');
+      console.log('🔄 Étape: self (connecté mais non vérifié)');
     } else {
       setCurrentStep('marketplace');
+      console.log('🔄 Étape: marketplace (connecté et vérifié)');
     }
   }, [isConnected, isVerified]);
 
@@ -204,42 +207,26 @@ function HomePageContent() {
                 </div>
               )}
 
-              {!showQRCode ? (
+              {!showQRCode && !error && (
                 <button
                   onClick={triggerSelfVerification}
                   disabled={isLoading}
                   className="w-full max-w-sm mx-auto bg-gradient-to-r from-purple-600 to-blue-600 text-white py-4 px-6 rounded-xl hover:from-purple-700 hover:to-blue-700 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl flex items-center justify-center"
                 >
-                  <div className="flex items-center">
+                    <div className="flex items-center">
                     <span className="text-2xl mr-3">🔐</span>
                     {isLoading ? 'Chargement...' : 'Vérifier avec Self ID'}
                   </div>
                 </button>
-              ) : (
-                <div className="space-y-6">
-                  <SelfQRCode 
-                    onSuccess={(data) => {
-                      console.log('✅ Vérification Self réussie:', data);
-                    }}
-                    onError={(error) => {
-                      console.error('❌ Erreur Self:', error);
-                    }}
-                  />
-                </div>
               )}
 
-              {isVerified && selfProof && (
-                <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-                  <div className="flex items-center justify-center text-green-700 mb-2">
-                    <span className="w-2 h-2 bg-green-500 rounded-full mr-2"></span>
-                    Identité vérifiée avec succès !
-                  </div>
-                  <div className="text-sm text-green-600">
-                    <p>✅ Âge vérifié (≥18 ans)</p>
-                    <p>✅ Nationalité: {selfProof.nationality}</p>
-                    <p>✅ Sanctions OFAC: {selfProof.isOfacValid ? 'Vérifié' : 'Non vérifié'}</p>
-                  </div>
-                </div>
+              {showQRCode && (
+                <div className="space-y-6">
+                  <SelfQRCode 
+                    onSuccess={handleSelfSuccess}
+                    onError={handleSelfError}
+                  />
+              </div>
               )}
             </div>
           )}
@@ -262,12 +249,12 @@ function HomePageContent() {
                   🛒 Accéder à la Marketplace
                 </Link>
                 <div className="text-center">
-                  <Link
-                    href="/create-listing"
+                <Link
+                  href="/create-listing"
                     className="inline-block text-blue-600 hover:text-blue-700 underline text-sm"
-                  >
+                >
                     Ou créer une nouvelle annonce
-                  </Link>
+                </Link>
                 </div>
               </div>
             </div>

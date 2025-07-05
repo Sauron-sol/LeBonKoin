@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 import { Listing, Category, SearchFilters, CONDITION_LABELS, Condition } from "@/types/marketplace";
 import { useAccount } from "wagmi";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
@@ -78,6 +79,7 @@ export default function MarketplacePage() {
   });
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
   const { isConnected } = useAccount();
+  const router = useRouter();
 
   // Fonction pour récupérer les annonces
   const fetchListings = async () => {
@@ -176,9 +178,8 @@ export default function MarketplacePage() {
     if (!isConnected) {
       setIsAuthModalOpen(true);
     } else {
-      // Ici on peut rediriger vers la page du produit ou ouvrir une modal produit
-      console.log(`Produit ${listingId} cliqué - utilisateur connecté`);
-      // Exemple: router.push(`/product/${listingId}`);
+      // Rediriger vers la page du produit
+      router.push(`/marketplace/${listingId}`);
     }
   };
 

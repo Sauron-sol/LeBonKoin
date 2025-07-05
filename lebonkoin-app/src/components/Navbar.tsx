@@ -3,9 +3,12 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ConnectButton } from "@rainbow-me/rainbowkit";
+import { useAccount } from "wagmi";
+import Image from "next/image";
 
 export default function Navbar() {
   const pathname = usePathname();
+  const { isConnected } = useAccount();
 
   const isActive = (path: string) => {
     return pathname === path;
@@ -15,8 +18,15 @@ export default function Navbar() {
     <header className="bg-black text-white">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between py-3">
-          <Link href="/" className="text-xl font-bold">
-            LebonKoin
+          <Link href="/" className="flex items-center space-x-2">
+            <Image 
+              src="/logo.svg" 
+              alt="LebonKoin Logo" 
+              width={32} 
+              height={32}
+              className="w-8 h-8"
+            />
+            <span className="text-xl font-bold text-white">LebonKoin</span>
           </Link>
           
           <div className="flex-1 max-w-2xl mx-8 bg-white rounded-md">
@@ -55,17 +65,21 @@ export default function Navbar() {
             >
               Marketplace
             </Link>
-            <button
-              className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-              onClick={() => {
-                // Cette fonction sera définie dans chaque page qui utilise la navbar
-                if (typeof window !== 'undefined' && (window as any).openAuthModal) {
-                  (window as any).openAuthModal();
-                }
-              }}
-            >
-              Connecter mon portefeuille
-            </button>
+            {isConnected ? (
+              <ConnectButton />
+            ) : (
+              <button
+                className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                onClick={() => {
+                  // Cette fonction sera définie dans chaque page qui utilise la navbar
+                  if (typeof window !== 'undefined' && (window as any).openAuthModal) {
+                    (window as any).openAuthModal();
+                  }
+                }}
+              >
+                🐰 Rabbit Wallet
+              </button>
+            )}
           </div>
         </div>
       </div>
